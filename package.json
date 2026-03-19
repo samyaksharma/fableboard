@@ -1,0 +1,17 @@
+{
+  "name": "fableboard",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --parallel --filter @fableboard/client --filter @fableboard/server dev",
+    "dev:client": "pnpm --filter @fableboard/client dev",
+    "dev:server": "pnpm --filter @fableboard/server dev",
+    "build": "pnpm --filter @fableboard/shared build && pnpm --parallel --filter @fableboard/client --filter @fableboard/server build",
+    "build:shared": "pnpm --filter @fableboard/shared build",
+    "lint": "pnpm -r lint",
+    "clean": "pnpm -r clean"
+  },
+"engines": {
+    "node": ">=18",
+    "pnpm": ">=8"
+  }
+}
