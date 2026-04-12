@@ -1,0 +1,5 @@
+{
+  "buildCommand": "pnpm --filter @fableboard/shared build && pnpm --filter @fableboard/client build",
+  "outputDirectory": "packages/client/dist",
+  "installCommand": "pnpm install"
+}
