@@ -5,6 +5,8 @@ export const SocketEvents = {
   SESSION_STATE: 'session_state',
   PARTICIPANT_JOINED: 'participant_joined',
   PARTICIPANT_LEFT: 'participant_left',
+  PARTICIPANT_UPDATED: 'participant_updated',
+  SESSION_DELETED: 'session_deleted',
 
   // Canvas
   DRAW_STROKE: 'draw_stroke',
@@ -12,6 +14,9 @@ export const SocketEvents = {
   MOVE_ELEMENT: 'move_element',
   UPDATE_ELEMENT: 'update_element',
   DELETE_ELEMENT: 'delete_element',
+  TEXT_OP: 'text_op',
+  TEXT_ACK: 'text_ack',
+  TEXT_RESYNC: 'text_resync',
 
   // Cursor
   CURSOR_MOVE: 'cursor_move',

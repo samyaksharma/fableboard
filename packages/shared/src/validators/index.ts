@@ -37,6 +37,7 @@ export const canvasElementSchema = z.object({
   position: positionSchema,
   size: sizeSchema,
   content: z.string(),
+  textVersion: z.number().int().nonnegative().optional(),
   style: elementStyleSchema,
   fabricData: z.record(z.unknown()),
   createdBy: z.string(),
@@ -52,14 +53,15 @@ export const kanbanCardSchema = z.object({
   assignee: z.string(),
   column: kanbanColumnSchema,
   order: z.number(),
+  snapshot: z.string().startsWith('data:image/').optional(),
   updatedAt: z.string(),
 });
 
-export const authProviderSchema = z.enum(['github', 'google']);
+export const authProviderSchema = z.enum(['github', 'google', 'guest', 'password']);
 
 export const userSchema = z.object({
   id: z.string(),
-  email: z.string().email(),
+  email: z.union([z.string().email(), z.literal('')]), // guests have no email
   displayName: z.string().min(1).max(100),
   avatarUrl: z.string(),
   provider: authProviderSchema,
@@ -136,4 +138,19 @@ export const createSessionSchema = z.object({
 export const joinSessionSchema = z.object({
   sessionId: z.string(),
   participant: participantSchema,
+});
+
+// Email + password sign-in. Bounds on password length also cap hashing work.
+export const registerSchema = z.object({
+  email: z.string().trim().toLowerCase().email('Enter a valid email address').max(254),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .max(128, 'Password must be at most 128 characters'),
+  displayName: z.string().trim().min(1, 'Enter a display name').max(40),
+});
+
+export const loginSchema = z.object({
+  email: z.string().trim().toLowerCase().email().max(254),
+  password: z.string().min(1).max(128),
 });

@@ -1,4 +1,5 @@
-export type AuthProvider = 'github' | 'google';
+import type { OTOp } from '../utils/ot.js';
+export type AuthProvider = 'github' | 'google' | 'guest' | 'password';
 
 export interface User {
   id: string;
@@ -56,6 +57,8 @@ export interface CanvasElement {
   position: { x: number; y: number };
   size: { w: number; h: number };
   content: string;
+  /** OT version of `content` (sticky notes) */
+  textVersion?: number;
   style: ElementStyle;
   fabricData: Record<string, unknown>;
   createdBy: string;
@@ -80,6 +83,8 @@ export interface KanbanCard {
   assignee: string;
   column: KanbanColumn;
   order: number;
+  /** Optional JPEG data URL: a snapshot of the whole board taken when the card was made */
+  snapshot?: string;
   updatedAt: string;
 }
 
@@ -126,6 +131,31 @@ export interface UpdateElementPayload {
   sessionId: string;
   fabricData: Record<string, unknown>;
   updatedAt: string;
+}
+
+export interface TextOpPayload {
+  elementId: string;
+  sessionId: string;
+  baseVersion: number;
+  ops: OTOp[];
+}
+
+/** Server -> clients. `ops` is already transformed and ordered at `version`. */
+export interface TextOpBroadcast {
+  elementId: string;
+  ops: OTOp[];
+  version: number;
+}
+
+export interface TextAckPayload {
+  elementId: string;
+  version: number;
+}
+
+export interface TextResyncPayload {
+  elementId: string;
+  text: string;
+  version: number;
 }
 
 export interface KanbanAddCardPayload {

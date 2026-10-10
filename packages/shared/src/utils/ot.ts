@@ -20,62 +20,71 @@ export function applyOperation(text: string, op: OTOp): string {
 }
 
 /**
- * Transform op2 against op1 (both applied to the same base).
- * Returns transformed op2 that can be applied after op1.
+ * Transform `op` so it can be applied after `base`, where both were made against
+ * the same document. Returns a list because a delete that straddles an insert
+ * must be split in two. `opWins` breaks insert/insert ties at the same position
+ * (the winner's text ends up first); both sides must agree on who wins.
  */
-export function transformOperation(op1: OTOp, op2: OTOp): OTOp {
-  // insert vs insert
-  if (op1.type === 'insert' && op2.type === 'insert') {
-    if (op2.pos <= op1.pos) {
-      return op2; // op2 inserts before op1, no adjustment
-    }
-    return { ...op2, pos: op2.pos + op1.chars.length };
+export function transformOperation(base: OTOp, op: OTOp, opWins: boolean): OTOp[] {
+  if (base.type === 'insert' && op.type === 'insert') {
+    if (op.pos < base.pos || (op.pos === base.pos && opWins)) return [op];
+    return [{ ...op, pos: op.pos + base.chars.length }];
+  }
+
+  if (base.type === 'insert' && op.type === 'delete') {
+    const len = base.chars.length;
+    if (base.pos <= op.pos) return [{ ...op, pos: op.pos + len }];
+    if (base.pos >= op.pos + op.count) return [op];
+    // Insert lands inside the deleted range: delete around it, keep the inserted text.
+    const head = base.pos - op.pos;
+    return [
+      { type: 'delete', pos: op.pos, count: head },
+      { type: 'delete', pos: op.pos + len, count: op.count - head },
+    ];
+  }
+
+  if (base.type === 'delete' && op.type === 'insert') {
+    if (op.pos <= base.pos) return [op];
+    if (op.pos >= base.pos + base.count) return [{ ...op, pos: op.pos - base.count }];
+    return [{ ...op, pos: base.pos }]; // insert inside deleted range
   }
 
   // delete vs delete
-  if (op1.type === 'delete' && op2.type === 'delete') {
-    if (op2.pos >= op1.pos + op1.count) {
-      return { ...op2, pos: op2.pos - op1.count };
-    }
-    if (op2.pos + op2.count <= op1.pos) {
-      return op2;
-    }
-    // Overlapping deletes
-    const start = Math.max(op2.pos, op1.pos);
-    const end = Math.min(op2.pos + op2.count, op1.pos + op1.count);
-    const overlap = Math.max(0, end - start);
-    return {
-      type: 'delete',
-      pos: Math.min(op2.pos, op1.pos),
-      count: op2.count - overlap,
-    };
-  }
+  if (base.type !== 'delete' || op.type !== 'delete') return [op];
+  if (op.pos >= base.pos + base.count) return [{ ...op, pos: op.pos - base.count }];
+  if (op.pos + op.count <= base.pos) return [op];
+  const overlap =
+    Math.min(op.pos + op.count, base.pos + base.count) - Math.max(op.pos, base.pos);
+  const count = op.count - overlap;
+  if (count === 0) return [];
+  return [{ type: 'delete', pos: Math.min(op.pos, base.pos), count }];
+}
 
-  // insert vs delete
-  if (op1.type === 'insert' && op2.type === 'delete') {
-    if (op2.pos >= op1.pos) {
-      return { ...op2, pos: op2.pos + op1.chars.length };
-    }
-    if (op2.pos + op2.count <= op1.pos) {
-      return op2;
-    }
-    // Delete spans across insert point
-    return op2;
+/**
+ * Transform two concurrent op sequences against each other.
+ * Returns [a', b'] where a' applies after b and b' applies after a.
+ * `aWins` decides insert/insert ties in favour of `a`.
+ */
+export function transformOps(a: OTOp[], b: OTOp[], aWins: boolean): [OTOp[], OTOp[]] {
+  if (a.length === 0 || b.length === 0) return [a, b];
+  if (a.length === 1 && b.length === 1) {
+    return [
+      transformOperation(b[0], a[0], aWins),
+      transformOperation(a[0], b[0], !aWins),
+    ];
   }
-
-  // delete vs insert
-  if (op1.type === 'delete' && op2.type === 'insert') {
-    if (op2.pos <= op1.pos) {
-      return op2;
-    }
-    if (op2.pos >= op1.pos + op1.count) {
-      return { ...op2, pos: op2.pos - op1.count };
-    }
-    // Insert inside deleted range — place at delete position
-    return { ...op2, pos: op1.pos };
+  if (a.length > 1) {
+    const [a1, b1] = transformOps([a[0]], b, aWins);
+    const [aRest, b2] = transformOps(a.slice(1), b1, aWins);
+    return [a1.concat(aRest), b2];
   }
+  const [a1, b1] = transformOps(a, [b[0]], aWins);
+  const [a2, bRest] = transformOps(a1, b.slice(1), aWins);
+  return [a2, b1.concat(bRest)];
+}
 
-  return op2;
+export function applyOperations(text: string, ops: OTOp[]): string {
+  return ops.reduce(applyOperation, text);
 }
 
 /**
