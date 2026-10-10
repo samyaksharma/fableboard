@@ -1,11 +1,18 @@
-import { Router } from 'express';
+import { Router, type Router as ExpressRouter } from 'express';
 import { createSessionSchema } from '@fableboard/shared';
 import { z } from 'zod';
 import * as sessionService from '../services/sessionService.js';
-import * as canvasStore from '../store/redisCanvasStore.js';
-import * as kanbanStore from '../store/redisKanbanStore.js';
+import * as canvasStore from '../store/canvasStore.js';
+import { SocketEvents } from '@fableboard/shared';
+import * as kanbanStore from '../store/kanbanStore.js';
 
-const router = Router();
+const router: ExpressRouter = Router();
+
+// After a restart a session may only exist in Convex: load it before any handler touches it.
+router.param('id', async (_req, _res, next, id) => {
+  await sessionService.ensureLoaded(id);
+  next();
+});
 
 router.post('/sessions', (req, res) => {
   const parsed = createSessionSchema.safeParse(req.body);
@@ -74,13 +81,39 @@ router.patch('/sessions/:id/participants/:participantId/role', (req, res) => {
     return;
   }
 
+  req.app.get('io')?.to(req.params.id).emit(SocketEvents.PARTICIPANT_UPDATED, { participant: updated });
   res.json({ participant: updated });
+});
+
+router.delete('/sessions/:id', async (req, res) => {
+  const caller = sessionService.getParticipantByUserId(req.params.id, req.user!.userId);
+  if (!sessionService.getSession(req.params.id)) {
+    res.status(404).json({ error: 'Session not found' });
+    return;
+  }
+  if (!caller || caller.role !== 'owner') {
+    res.status(403).json({ error: 'Only the session owner can delete the session' });
+    return;
+  }
+  await canvasStore.clearSession(req.params.id);
+  await kanbanStore.clearSession(req.params.id);
+  sessionService.deleteSession(req.params.id);
+  const io = req.app.get('io');
+  io?.to(req.params.id).emit(SocketEvents.SESSION_DELETED, { sessionId: req.params.id });
+  io?.in(req.params.id).socketsLeave(req.params.id);
+  res.status(204).end();
 });
 
 router.get('/sessions/:id/export/json', async (req, res) => {
   const session = sessionService.getSession(req.params.id);
   if (!session) {
     res.status(404).json({ error: 'Session not found' });
+    return;
+  }
+
+  const caller = sessionService.getParticipantByUserId(req.params.id, req.user!.userId);
+  if (!caller || caller.role !== 'owner') {
+    res.status(403).json({ error: 'Only the session owner can export' });
     return;
   }
 

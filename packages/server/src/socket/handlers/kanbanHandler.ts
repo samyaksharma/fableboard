@@ -6,7 +6,8 @@ import type {
   KanbanUpdateCardPayload,
   KanbanDeleteCardPayload,
 } from '@fableboard/shared';
-import * as kanbanStore from '../../store/redisKanbanStore.js';
+import { resolveCardConflict } from '../../services/conflictResolver.js';
+import * as kanbanStore from '../../store/kanbanStore.js';
 import { canWrite } from '../helpers/permissions.js';
 
 export function registerKanbanHandlers(io: Server, socket: Socket) {
@@ -25,14 +26,23 @@ export function registerKanbanHandlers(io: Server, socket: Socket) {
       return;
     }
     const card = await kanbanStore.getCard(payload.sessionId, payload.cardId);
-    if (card) {
-      await kanbanStore.setCard(payload.sessionId, {
-        ...card,
-        column: payload.column,
-        order: payload.order,
-        updatedAt: payload.updatedAt,
+    if (!card) return;
+    const { accepted, card: kept } = resolveCardConflict(
+      { ...card, column: payload.column, order: payload.order, updatedAt: payload.updatedAt },
+      card,
+    );
+    if (!accepted) {
+      // Server is authoritative: send the sender the state we kept.
+      socket.emit(SocketEvents.KANBAN_MOVE_CARD, {
+        cardId: kept.id,
+        sessionId: payload.sessionId,
+        column: kept.column,
+        order: kept.order,
+        updatedAt: kept.updatedAt,
       });
+      return;
     }
+    await kanbanStore.setCard(payload.sessionId, kept);
     socket.to(payload.sessionId).emit(SocketEvents.KANBAN_MOVE_CARD, payload);
   });
 
@@ -42,15 +52,29 @@ export function registerKanbanHandlers(io: Server, socket: Socket) {
       return;
     }
     const card = await kanbanStore.getCard(payload.sessionId, payload.cardId);
-    if (card) {
-      await kanbanStore.setCard(payload.sessionId, {
+    if (!card) return;
+    const { accepted, card: kept } = resolveCardConflict(
+      {
         ...card,
         ...(payload.title !== undefined && { title: payload.title }),
         ...(payload.description !== undefined && { description: payload.description }),
         ...(payload.assignee !== undefined && { assignee: payload.assignee }),
         updatedAt: payload.updatedAt,
+      },
+      card,
+    );
+    if (!accepted) {
+      socket.emit(SocketEvents.KANBAN_UPDATE_CARD, {
+        cardId: kept.id,
+        sessionId: payload.sessionId,
+        title: kept.title,
+        description: kept.description,
+        assignee: kept.assignee,
+        updatedAt: kept.updatedAt,
       });
+      return;
     }
+    await kanbanStore.setCard(payload.sessionId, kept);
     socket.to(payload.sessionId).emit(SocketEvents.KANBAN_UPDATE_CARD, payload);
   });
 

@@ -1,8 +1,8 @@
 import { Server, Socket } from 'socket.io';
 import { SocketEvents } from '@fableboard/shared';
 import * as sessionService from '../../services/sessionService.js';
-import * as canvasStore from '../../store/redisCanvasStore.js';
-import * as kanbanStore from '../../store/redisKanbanStore.js';
+import * as canvasStore from '../../store/canvasStore.js';
+import * as kanbanStore from '../../store/kanbanStore.js';
 
 interface JoinPayload {
   sessionId: string;
@@ -14,6 +14,7 @@ interface JoinPayload {
 export function registerSessionHandlers(io: Server, socket: Socket) {
   socket.on(SocketEvents.JOIN_SESSION, async (payload: JoinPayload) => {
     const { sessionId, participantId, displayName, color } = payload;
+    await sessionService.ensureLoaded(sessionId);
     socket.join(sessionId);
     (socket as any).__sessionId = sessionId;
     (socket as any).__participantId = participantId;
@@ -25,7 +26,12 @@ export function registerSessionHandlers(io: Server, socket: Socket) {
     if (session) {
       const elements = await canvasStore.getAllElements(sessionId);
       const cards = await kanbanStore.getAllCards(sessionId);
-      const participants = sessionService.getParticipants(sessionId);
+      const onlineIds = new Set(
+        (await io.in(sessionId).fetchSockets()).map((s) => (s as any).__participantId),
+      );
+      const participants = sessionService
+        .getParticipants(sessionId)
+        .filter((p) => onlineIds.has(p.id));
 
       socket.emit(SocketEvents.SESSION_STATE, {
         session,
@@ -35,11 +41,12 @@ export function registerSessionHandlers(io: Server, socket: Socket) {
       });
     }
 
-    socket.to(sessionId).emit(SocketEvents.PARTICIPANT_JOINED, {
-      participantId,
-      displayName,
-      color,
-    });
+    const participant = sessionService
+      .getParticipants(sessionId)
+      .find((p) => p.id === participantId);
+    if (participant) {
+      socket.to(sessionId).emit(SocketEvents.PARTICIPANT_JOINED, { participant });
+    }
   });
 
   socket.on('disconnect', () => {
