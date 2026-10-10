@@ -59,8 +59,8 @@ export default function App() {
         <CanvasContainer
           socket={socket}
           kanbanRef={kanbanRef}
-          onDropToKanban={(elementId, title) => {
-            emitAddCard(title, 'todo', elementId);
+          onDropToKanban={(elementId, title, column) => {
+            emitAddCard(title, column, elementId);
           }}
         />
         {kanbanOpen && <KanbanPanel socket={socket} kanbanRef={kanbanRef} />}

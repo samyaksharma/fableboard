@@ -1,28 +1,63 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { Socket } from 'socket.io-client';
 import { useCanvas } from '@/hooks/useCanvas';
 import { useDrawing } from '@/hooks/useDrawing';
 import { useShapes } from '@/hooks/useShapes';
 import { useStickyNotes } from '@/hooks/useStickyNotes';
 import { useCanvasSync } from '@/hooks/useCanvasSync';
+import { useStickyText } from '@/hooks/useStickyText';
 import { useCursorSync } from '@/hooks/useCursorSync';
 import { useDragToKanban } from '@/hooks/useDragToKanban';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import type { KanbanColumn } from '@fableboard/shared';
 import { RemoteCursors } from './RemoteCursors';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useCanvasStore, ToolType } from '@/stores/canvasStore';
 
 interface Props {
   socket: Socket | null;
   kanbanRef?: React.RefObject<HTMLDivElement | null>;
-  onDropToKanban?: (elementId: string, title: string) => void;
+  onDropToKanban?: (elementId: string, title: string, column: KanbanColumn) => void;
 }
 
 export function CanvasContainer({ socket, kanbanRef, onDropToKanban }: Props) {
   const { canvasRef, fabricRef, containerRef } = useCanvas();
   const activeTool = useCanvasStore((s) => s.activeTool);
+  const [isEmpty, setIsEmpty] = useState(true);
+
+  const { canDraw } = usePermissions();
+
+  // Show the empty-state hint only while the canvas really has nothing on it.
+  useEffect(() => {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    const update = () => setIsEmpty(canvas.getObjects().length === 0);
+    canvas.on('object:added', update);
+    canvas.on('object:removed', update);
+    update();
+    return () => {
+      canvas.off('object:added', update);
+      canvas.off('object:removed', update);
+    };
+  }, [fabricRef]);
+
+  // Viewers can look but not touch.
+  useEffect(() => {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    canvas.selection = canDraw;
+    canvas.skipTargetFind = !canDraw;
+    if (!canDraw) {
+      canvas.isDrawingMode = false;
+      canvas.discardActiveObject();
+      canvas.renderAll();
+      useCanvasStore.getState().setActiveTool('select');
+    }
+  }, [fabricRef, canDraw]);
 
   useDrawing(fabricRef, socket);
   useCanvasSync(fabricRef, socket);
+  useStickyText(fabricRef, socket);
   const { createShape } = useShapes(fabricRef, socket);
   const { createStickyNote } = useStickyNotes(fabricRef, socket);
   const remoteCursors = useCursorSync(containerRef, socket);
@@ -38,7 +73,7 @@ export function CanvasContainer({ socket, kanbanRef, onDropToKanban }: Props) {
   const handleCanvasClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       const canvas = fabricRef.current;
-      if (!canvas) return;
+      if (!canvas || !canDraw) return;
 
       const target = canvas.findTarget(e.nativeEvent as any);
       if (target) return;
@@ -56,7 +91,7 @@ export function CanvasContainer({ socket, kanbanRef, onDropToKanban }: Props) {
         createStickyNote(x, y);
       }
     },
-    [fabricRef, containerRef, activeTool, createShape, createStickyNote],
+    [fabricRef, containerRef, canDraw, activeTool, createShape, createStickyNote],
   );
 
   return (
@@ -66,6 +101,18 @@ export function CanvasContainer({ socket, kanbanRef, onDropToKanban }: Props) {
       onClick={handleCanvasClick}
     >
       <canvas ref={canvasRef} />
+      {isEmpty && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="text-center text-slate-400">
+            <p className="text-lg font-medium text-slate-500">Sketch it. Sync it. Ship it.</p>
+            <p className="text-sm mt-1">
+              {canDraw
+                ? 'Pick a tool above, then drag a sticky note or shape onto the kanban board to make a task.'
+                : 'Waiting for the owner or an editor to add something.'}
+            </p>
+          </div>
+        </div>
+      )}
       <RemoteCursors cursors={remoteCursors} />
     </div>
   );

@@ -6,6 +6,8 @@ interface AuthState {
   user: JwtPayload | null;
   isAuthenticated: boolean;
   setAuth: (token: string, user: JwtPayload) => void;
+  /** Store a token received from the server (decodes the user from it). */
+  setToken: (token: string) => boolean;
   logout: () => void;
   loadFromStorage: () => void;
 }
@@ -37,6 +39,14 @@ export const useAuthStore = create<AuthState>((set) => ({
   setAuth: (token, user) => {
     localStorage.setItem('fableboard_token', token);
     set({ token, user, isAuthenticated: true });
+  },
+
+  setToken: (token) => {
+    const user = parseJwtPayload(token);
+    if (!user) return false;
+    localStorage.setItem('fableboard_token', token);
+    set({ token, user, isAuthenticated: true });
+    return true;
   },
 
   logout: () => {

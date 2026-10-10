@@ -11,6 +11,7 @@ interface Props {
   onMoveCard: (cardId: string, column: KanbanColumnType, order: number) => void;
   onAddCard: (title: string, column: KanbanColumnType) => void;
   onDragStart: (e: React.DragEvent, card: KanbanCardType) => void;
+  readOnly?: boolean;
 }
 
 export function KanbanColumn({
@@ -21,6 +22,7 @@ export function KanbanColumn({
   onMoveCard,
   onAddCard,
   onDragStart,
+  readOnly = false,
 }: Props) {
   const [adding, setAdding] = useState(false);
   const [newTitle, setNewTitle] = useState('');
@@ -33,12 +35,13 @@ export function KanbanColumn({
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
+      if (readOnly) return;
       const cardId = e.dataTransfer.getData('text/plain');
       if (cardId) {
         onMoveCard(cardId, column, Date.now());
       }
     },
-    [column, onMoveCard],
+    [column, onMoveCard, readOnly],
   );
 
   const handleAddSubmit = () => {
@@ -57,6 +60,7 @@ export function KanbanColumn({
 
   return (
     <div
+      data-column={column}
       className={`flex flex-col min-h-0 rounded-lg ${columnColors[column] ?? 'bg-gray-50'}`}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
@@ -75,9 +79,10 @@ export function KanbanColumn({
             onEdit={onEdit}
             onDelete={onDelete}
             onDragStart={onDragStart}
+            readOnly={readOnly}
           />
         ))}
-        {adding ? (
+        {readOnly ? null : adding ? (
           <div className="bg-white rounded-lg p-2 shadow-sm border">
             <input
               autoFocus

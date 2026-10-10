@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import type { Socket } from 'socket.io-client';
-import { Canvas, Rect, IText } from 'fabric';
+import { Canvas, Rect, Textbox } from 'fabric';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { useSessionStore } from '@/stores/sessionStore';
 import { generateId, nowISO, CANVAS_DEFAULTS, DEFAULT_COLORS, SocketEvents } from '@fableboard/shared';
@@ -37,7 +37,8 @@ export function useStickyNotes(
       (bg as any).__elementId = elementId;
       (bg as any).__stickyRole = 'bg';
 
-      const text = new IText('Note...', {
+      // Textbox (an IText that wraps) keeps long notes inside the sticky.
+      const text = new Textbox('Note...', {
         left: (bg.left ?? 0) + 12,
         top: (bg.top ?? 0) + 12,
         fontSize: STICKY_FONT_SIZE,
@@ -47,22 +48,17 @@ export function useStickyNotes(
         editable: true,
         selectable: true,
         evented: true,
+        lockMovementX: true,
+        lockMovementY: true,
+        hasControls: false,
       });
       (text as any).__elementId = elementId;
       (text as any).__stickyRole = 'text';
 
       canvas.add(bg);
       canvas.add(text);
-      canvas.setActiveObject(text);
+      canvas.setActiveObject(bg);
       canvas.renderAll();
-
-      bg.on('moving', () => {
-        text.set({
-          left: (bg.left ?? 0) + 12,
-          top: (bg.top ?? 0) + 12,
-        });
-        text.setCoords();
-      });
 
       const sessionId = session?.id ?? '';
       const element = {

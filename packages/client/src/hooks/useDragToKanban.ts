@@ -1,12 +1,13 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import type { Canvas } from 'fabric';
+import type { KanbanColumn } from '@fableboard/shared';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { useUIStore } from '@/stores/uiStore';
 
 interface UseDragToKanbanProps {
   fabricRef: React.RefObject<Canvas | null>;
   kanbanRef: React.RefObject<HTMLDivElement | null>;
-  onDropToKanban: (elementId: string, title: string) => void;
+  onDropToKanban: (elementId: string, title: string, column: KanbanColumn) => void;
 }
 
 export function useDragToKanban({
@@ -17,9 +18,32 @@ export function useDragToKanban({
   const kanbanOpen = useUIStore((s) => s.kanbanOpen);
   const elements = useCanvasStore((s) => s.elements);
   const removeElement = useCanvasStore((s) => s.removeElement);
+  // Only a real drag of a canvas object may create a card; a plain click that happens to land
+  // on the panel (menus, "+ Add card") while something is selected must not.
+  const dragging = useRef(false);
+
+  useEffect(() => {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    const onMoving = () => {
+      dragging.current = true;
+    };
+    // Runs after the kanban handler has had its chance to read the flag.
+    const clear = () => setTimeout(() => (dragging.current = false), 0);
+    canvas.on('object:moving', onMoving);
+    document.addEventListener('mouseup', clear);
+    return () => {
+      canvas.off('object:moving', onMoving);
+      document.removeEventListener('mouseup', clear);
+    };
+  }, [fabricRef]);
 
   const handleDragEnd = useCallback(
     (e: MouseEvent) => {
+      const wasDragging = dragging.current;
+      dragging.current = false;
+      if (!wasDragging) return;
+
       const canvas = fabricRef.current;
       const kanbanEl = kanbanRef.current;
       if (!canvas || !kanbanEl || !kanbanOpen) return;
@@ -49,19 +73,22 @@ export function useDragToKanban({
               ? element.type.charAt(0).toUpperCase() + element.type.slice(1)
               : 'Canvas Item';
 
-      // Remove from canvas
-      const objectsToRemove = canvas
-        .getObjects()
-        .filter((obj) => (obj as any).__elementId === elementId);
-      objectsToRemove.forEach((obj) => {
-        (obj as any).__skipEmit = true;
-        canvas.remove(obj);
-      });
+      // Column under the cursor (defaults to To Do when released on the header/gap)
+      const columnEl = document
+        .elementFromPoint(e.clientX, e.clientY)
+        ?.closest<HTMLElement>('[data-column]');
+      const column = (columnEl?.dataset.column as KanbanColumn | undefined) ?? 'todo';
+
+      // Remove from canvas. Not __skipEmit: the removal is broadcast so every client's canvas matches.
       canvas.discardActiveObject();
+      canvas
+        .getObjects()
+        .filter((obj) => (obj as any).__elementId === elementId)
+        .forEach((obj) => canvas.remove(obj));
       canvas.renderAll();
       removeElement(elementId);
 
-      onDropToKanban(elementId, title);
+      onDropToKanban(elementId, title, column);
     },
     [fabricRef, kanbanRef, kanbanOpen, elements, removeElement, onDropToKanban],
   );

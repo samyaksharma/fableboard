@@ -12,6 +12,7 @@ import {
   type DrawStrokePayload,
   type UpdateElementPayload,
   type SessionStatePayload,
+  type CanvasElement,
 } from '@fableboard/shared';
 
 // Helper to enliven serialized fabric objects into live instances
@@ -19,6 +20,55 @@ async function enlivenFromData(data: unknown[]): Promise<FabricObject[]> {
   const { util } = await import('fabric');
   const result = await util.enlivenObjects(data as any[]);
   return result as unknown as FabricObject[];
+}
+
+// `type` (and a few others) are read-only on live fabric objects.
+function settable(data: Record<string, unknown>) {
+  const { type: _t, version: _v, ...rest } = data;
+  return rest;
+}
+
+const EXTRA_PROPS = ['__elementId', '__stickyRole'];
+
+function objectsFor(canvas: Canvas, elementId: string): FabricObject[] {
+  return canvas.getObjects().filter((o) => (o as any).__elementId === elementId);
+}
+
+function stickyData(canvas: Canvas, elementId: string) {
+  const objs = objectsFor(canvas, elementId);
+  const bg = objs.find((o) => (o as any).__stickyRole === 'bg');
+  const text = objs.find((o) => (o as any).__stickyRole === 'text');
+  return { bg, text };
+}
+
+// Keep a note's text pinned to its background.
+function syncStickyText(canvas: Canvas, elementId: string) {
+  const { bg, text } = stickyData(canvas, elementId);
+  if (!bg || !text) return;
+  text.set({ left: (bg.left ?? 0) + 12, top: (bg.top ?? 0) + 12 });
+  text.setCoords();
+}
+
+// Add a stored element (all of its fabric objects) to the canvas.
+async function addElementToCanvas(canvas: Canvas, el: CanvasElement) {
+  const parts: [string, any][] =
+    el.type === 'sticky_note'
+      ? [['bg', el.fabricData.bg], ['text', el.fabricData.text]]
+      : [['', el.fabricData]];
+  for (const [role, data] of parts) {
+    if (!data) continue;
+    const [obj] = await enlivenFromData([data]);
+    (obj as any).__skipEmit = true;
+    (obj as any).__elementId = el.id;
+    if (role) (obj as any).__stickyRole = role;
+    if (role === 'text') {
+      obj.set({ lockMovementX: true, lockMovementY: true, hasControls: false });
+      (obj as any).set('text', el.content);
+    }
+    canvas.add(obj);
+    delete (obj as any).__skipEmit;
+  }
+  canvas.renderAll();
 }
 
 export function useCanvasSync(
@@ -41,12 +91,20 @@ export function useCanvasSync(
       if (!obj || (obj as any).__skipEmit) return;
       const elementId = (obj as any).__elementId;
       if (!elementId) return;
+      if ((obj as any).__stickyRole === 'text') return; // text edits go through OT
 
+      const { bg, text } = stickyData(canvas, elementId);
+      const source = bg ?? obj;
       const payload: MoveElementPayload = {
         elementId,
         sessionId: session.id,
-        position: { x: obj.left ?? 0, y: obj.top ?? 0 },
-        fabricData: (obj.toObject as any)(['__elementId', '__stickyRole']),
+        position: { x: source.left ?? 0, y: source.top ?? 0 },
+        fabricData: bg
+          ? {
+              bg: (bg.toObject as any)(EXTRA_PROPS),
+              text: text ? (text.toObject as any)(EXTRA_PROPS) : undefined,
+            }
+          : (obj.toObject as any)(EXTRA_PROPS),
         updatedAt: nowISO(),
       };
       socket.emit(SocketEvents.MOVE_ELEMENT, payload);
@@ -54,6 +112,13 @@ export function useCanvasSync(
         position: payload.position,
         updatedAt: payload.updatedAt,
       });
+    };
+
+    const handleObjectMoving = (e: { target?: FabricObject }) => {
+      const obj = e.target as any;
+      if (obj?.__stickyRole === 'bg') {
+        syncStickyText(canvas, obj.__elementId);
+      }
     };
 
     const handleObjectRemoved = (e: { target?: FabricObject }) => {
@@ -71,10 +136,12 @@ export function useCanvasSync(
     };
 
     canvas.on('object:modified', handleObjectModified as any);
+    canvas.on('object:moving', handleObjectMoving as any);
     canvas.on('object:removed', handleObjectRemoved as any);
 
     return () => {
       canvas.off('object:modified', handleObjectModified as any);
+      canvas.off('object:moving', handleObjectMoving as any);
       canvas.off('object:removed', handleObjectRemoved as any);
     };
   }, [fabricRef, socket, session, updateElement, removeElement]);
@@ -85,32 +152,14 @@ export function useCanvasSync(
     const canvas = fabricRef.current;
     if (!canvas) return;
 
-    const handleSessionState = (payload: SessionStatePayload) => {
-      setElements(payload.elements);
-      payload.elements.forEach((el) => {
-        const data = el.type === 'sticky_note' ? el.fabricData.bg : el.fabricData;
-        enlivenFromData([data]).then((objects) => {
-          objects.forEach((obj) => {
-            (obj as any).__skipEmit = true;
-            (obj as any).__elementId = el.id;
-            canvas.add(obj);
-            delete (obj as any).__skipEmit;
-          });
-          if (el.type === 'sticky_note' && el.fabricData.text) {
-            enlivenFromData([el.fabricData.text]).then((textObjs) => {
-              textObjs.forEach((obj) => {
-                (obj as any).__skipEmit = true;
-                (obj as any).__elementId = el.id;
-                canvas.add(obj);
-                delete (obj as any).__skipEmit;
-              });
-              canvas.renderAll();
-            });
-          } else {
-            canvas.renderAll();
-          }
-        });
+    const handleSessionState = async (payload: SessionStatePayload) => {
+      // Full replay (first join or reconnect): start from a clean canvas.
+      canvas.getObjects().forEach((o) => {
+        (o as any).__skipEmit = true;
+        canvas.remove(o);
       });
+      setElements(payload.elements);
+      for (const el of payload.elements) await addElementToCanvas(canvas, el);
     };
 
     const handleDrawStroke = (payload: DrawStrokePayload) => {
@@ -127,20 +176,35 @@ export function useCanvasSync(
 
     const handleAddElement = (payload: AddElementPayload) => {
       addElement(payload.element);
-      const el = payload.element;
-      const dataItems =
-        el.type === 'sticky_note'
-          ? [el.fabricData.bg, el.fabricData.text].filter(Boolean)
-          : [el.fabricData];
-      enlivenFromData(dataItems).then((objects) => {
-        objects.forEach((obj) => {
+      addElementToCanvas(canvas, payload.element);
+    };
+
+    const applyFabricData = (elementId: string, fabricData: Record<string, any>) => {
+      const { bg, text } = stickyData(canvas, elementId);
+      if (bg) {
+        // Sticky note: text content is owned by OT, so never overwrite it here.
+        const { text: _ignored, ...textProps } = (fabricData.text ?? {}) as Record<string, unknown>;
+        const parts: [FabricObject | undefined, Record<string, unknown> | undefined][] = [
+          [bg, fabricData.bg],
+          [text, textProps],
+        ];
+        parts.forEach(([obj, data]) => {
+          if (!obj || !data) return;
           (obj as any).__skipEmit = true;
-          (obj as any).__elementId = el.id;
-          canvas.add(obj);
+          obj.set(settable(data) as any);
+          obj.setCoords();
           delete (obj as any).__skipEmit;
         });
-        canvas.renderAll();
-      });
+        syncStickyText(canvas, elementId);
+      } else {
+        objectsFor(canvas, elementId).forEach((obj) => {
+          (obj as any).__skipEmit = true;
+          obj.set(settable(fabricData) as any);
+          obj.setCoords();
+          delete (obj as any).__skipEmit;
+        });
+      }
+      canvas.renderAll();
     };
 
     const handleMoveElement = (payload: MoveElementPayload) => {
@@ -148,30 +212,12 @@ export function useCanvasSync(
         position: payload.position,
         updatedAt: payload.updatedAt,
       });
-      const objects = canvas.getObjects();
-      objects.forEach((obj) => {
-        if ((obj as any).__elementId === payload.elementId) {
-          (obj as any).__skipEmit = true;
-          obj.set(payload.fabricData as any);
-          obj.setCoords();
-          delete (obj as any).__skipEmit;
-        }
-      });
-      canvas.renderAll();
+      applyFabricData(payload.elementId, payload.fabricData);
     };
 
     const handleUpdateElement = (payload: UpdateElementPayload) => {
       updateElement(payload.elementId, { updatedAt: payload.updatedAt });
-      const objects = canvas.getObjects();
-      objects.forEach((obj) => {
-        if ((obj as any).__elementId === payload.elementId) {
-          (obj as any).__skipEmit = true;
-          obj.set(payload.fabricData as any);
-          obj.setCoords();
-          delete (obj as any).__skipEmit;
-        }
-      });
-      canvas.renderAll();
+      applyFabricData(payload.elementId, payload.fabricData);
     };
 
     const handleDeleteElement = (payload: DeleteElementPayload) => {

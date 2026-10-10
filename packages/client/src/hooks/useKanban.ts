@@ -12,6 +12,7 @@ import {
   type KanbanMoveCardPayload,
   type KanbanUpdateCardPayload,
   type KanbanDeleteCardPayload,
+  type SessionStatePayload,
 } from '@fableboard/shared';
 
 export function useKanban(socket: Socket | null) {
@@ -44,12 +45,16 @@ export function useKanban(socket: Socket | null) {
       removeCard(payload.cardId);
     };
 
+    const handleState = (payload: SessionStatePayload) => setCards(payload.cards);
+
+    socket.on(SocketEvents.SESSION_STATE, handleState);
     socket.on(SocketEvents.KANBAN_ADD_CARD, handleAdd);
     socket.on(SocketEvents.KANBAN_MOVE_CARD, handleMove);
     socket.on(SocketEvents.KANBAN_UPDATE_CARD, handleUpdate);
     socket.on(SocketEvents.KANBAN_DELETE_CARD, handleDelete);
 
     return () => {
+      socket.off(SocketEvents.SESSION_STATE, handleState);
       socket.off(SocketEvents.KANBAN_ADD_CARD, handleAdd);
       socket.off(SocketEvents.KANBAN_MOVE_CARD, handleMove);
       socket.off(SocketEvents.KANBAN_UPDATE_CARD, handleUpdate);
@@ -58,7 +63,12 @@ export function useKanban(socket: Socket | null) {
   }, [socket, addCard, updateCard, moveCard, removeCard, setCards]);
 
   const emitAddCard = useCallback(
-    (title: string, column: KanbanColumn = 'todo', sourceElementId: string | null = null) => {
+    (
+      title: string,
+      column: KanbanColumn = 'todo',
+      sourceElementId: string | null = null,
+      snapshot?: string,
+    ) => {
       if (!session) return null;
       const card: KanbanCard = {
         id: generateId(),
@@ -69,6 +79,7 @@ export function useKanban(socket: Socket | null) {
         assignee: '',
         column,
         order: Date.now(),
+        ...(snapshot && { snapshot }),
         updatedAt: nowISO(),
       };
       addCard(card);

@@ -65,3 +65,15 @@ export function updateParticipantRole(
     body: JSON.stringify({ role }),
   });
 }
+
+export async function deleteSession(sessionId: string) {
+  const token = localStorage.getItem('fableboard_token');
+  const res = await fetch(`${BASE}/sessions/${sessionId}`, {
+    method: 'DELETE',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error || res.statusText);
+  }
+}
