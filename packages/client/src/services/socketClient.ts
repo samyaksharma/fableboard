@@ -1,17 +1,17 @@
 import { io, Socket } from 'socket.io-client';
+import { SERVER_URL } from './config';
 
 let socket: Socket | null = null;
 
 export function getSocket(): Socket {
   const token = localStorage.getItem('fableboard_token');
   if (!socket) {
-    socket = io('/', {
+    socket = io(SERVER_URL || '/', {
       autoConnect: false,
       transports: ['websocket', 'polling'],
       auth: { token: token ?? '' },
     });
   } else {
-    // Update token on existing socket for reconnects
     socket.auth = { token: token ?? '' };
   }
   return socket;

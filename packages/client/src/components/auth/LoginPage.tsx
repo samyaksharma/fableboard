@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
+import { API_BASE } from '@/services/config';
 
 type Mode = 'signin' | 'register';
 interface Providers {
@@ -33,9 +34,8 @@ export function LoginPage() {
   const [busy, setBusy] = useState(false);
   const [providers, setProviders] = useState<Providers>({ github: false, google: false });
 
-  // Only offer OAuth buttons that are actually configured on the server.
   useEffect(() => {
-    fetch('/api/auth/providers')
+    fetch(`${API_BASE}/auth/providers`)
       .then((r) => (r.ok ? r.json() : null))
       .then((p) => p && setProviders({ github: !!p.github, google: !!p.google }))
       .catch(() => {});
@@ -57,15 +57,15 @@ export function LoginPage() {
   const handleAccount = (e: React.FormEvent) => {
     e.preventDefault();
     if (mode === 'register') {
-      submit('/api/auth/register', { email, password, displayName });
+      submit(`${API_BASE}/auth/register`, { email, password, displayName });
     } else {
-      submit('/api/auth/login', { email, password });
+      submit(`${API_BASE}/auth/login`, { email, password });
     }
   };
 
   const handleGuest = (e: React.FormEvent) => {
     e.preventDefault();
-    if (guestName.trim()) submit('/api/auth/guest', { displayName: guestName.trim() });
+    if (guestName.trim()) submit(`${API_BASE}/auth/guest`, { displayName: guestName.trim() });
   };
 
   const switchMode = (m: Mode) => {
@@ -151,7 +151,7 @@ export function LoginPage() {
           <div className="space-y-2 mb-3">
             {providers.github && (
               <a
-                href="/api/auth/github"
+                href={`${API_BASE}/auth/github`}
                 className="w-full py-2.5 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors flex items-center justify-center"
               >
                 Continue with GitHub
@@ -159,7 +159,7 @@ export function LoginPage() {
             )}
             {providers.google && (
               <a
-                href="/api/auth/google"
+                href={`${API_BASE}/auth/google`}
                 className="w-full py-2.5 bg-white text-gray-700 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors flex items-center justify-center"
               >
                 Continue with Google

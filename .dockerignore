@@ -1,0 +1,12 @@
+node_modules
+**/node_modules
+**/dist
+.git
+.env
+.env.local
+docs
+e2e
+convex
+packages/client/src
+packages/client/public
+*.log

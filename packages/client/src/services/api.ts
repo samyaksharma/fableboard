@@ -1,4 +1,4 @@
-const BASE = '/api';
+import { API_BASE as BASE } from './config';
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const token = localStorage.getItem('fableboard_token');

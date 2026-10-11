@@ -13,15 +13,16 @@
     "lint": "pnpm -r lint",
     "clean": "pnpm -r clean"
   },
-  "engines": {
-    "node": ">=18",
-    "pnpm": ">=8"
-  },
   "dependencies": {
     "convex": "^1.46.0"
   },
   "devDependencies": {
     "playwright": "1.64.0",
     "tsx": "^4.19.2"
+  },
+  "packageManager": "pnpm@10.7.1",
+  "engines": {
+    "node": ">=18",
+    "pnpm": ">=8"
   }
 }

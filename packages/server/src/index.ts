@@ -11,6 +11,7 @@ import sessionsRouter from './routes/sessions.js';
 import { requireAuth } from './middleware/auth.js';
 
 const app = express();
+if (config.trustProxy) app.set('trust proxy', config.trustProxy);
 const httpServer = createServer(app);
 
 app.use(cors({ origin: config.clientUrl }));
