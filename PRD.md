@@ -44,13 +44,6 @@ Viewer: view only
 Editor: draw, add notes, move elements, create cards
 Owner: all editor actions + export, manage users, delete session
 
-## MILESTONES
-Week 1-2: Canvas, drawing tools, sticky notes (single user)
-Week 3-4: WebSocket server, Redis pub/sub, multi-user sync + cursors
-Week 5-6: Kanban panel, drag-to-kanban, card management
-Week 7:   Permissions, session management, export
-Week 8:   Conflict resolution tests, demo recording, portfolio polish
-
 ## TESTING REQUIREMENTS
 - Unit: OT merge/patch logic, LWW resolution, card state transitions, JSON schema
 - Integration: multi-client sync, reconnect/replay, drag-to-kanban broadcast
