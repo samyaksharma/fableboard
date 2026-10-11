@@ -1,0 +1,246 @@
+import { test, before, after } from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import { chromium, type Browser } from 'playwright';
+import {
+  startStack, newUser, createSession, joinSession, regionHasInk, expectEventually, APP_URL,
+} from './helpers.js';
+
+let stop: () => Promise<void>;
+let browser: Browser;
+
+before(async () => {
+  stop = await startStack();
+  browser = await chromium.launch();
+});
+
+after(async () => {
+  await browser?.close();
+  await stop?.();
+});
+
+// A rectangle created by a click is 80x80 and centred on the click; its fill is transparent,
+// so look for ink along its top edge rather than at its centre.
+const rectEdge = (page: any, cx: number, cy: number) => () => regionHasInk(page, cx - 30, cy - 42, 60, 4);
+const strokeAt = (page: any, x: number, y: number) => () => regionHasInk(page, x - 20, y - 4, 40, 8);
+
+test('two browsers: a shape and a stroke drawn by one appear for the other', async () => {
+  const alice = await newUser(browser, 'Alice');
+  const id = await createSession(alice.page, 'Sync');
+  const bob = await newUser(browser, 'Bob');
+  await joinSession(bob.page, id);
+
+  // Rectangle: click places a default-sized shape at the click point
+  await alice.page.click('button[title="Rectangle"]');
+  await alice.page.mouse.click(300, 300);
+  // Freehand stroke along y=500
+  await alice.page.click('button[title="Draw"]');
+  await alice.page.mouse.move(400, 500);
+  await alice.page.mouse.down();
+  await alice.page.mouse.move(700, 500, { steps: 12 });
+  await alice.page.mouse.up();
+
+  await expectEventually(strokeAt(bob.page, 550, 500), "Bob sees Alice's stroke");
+  await expectEventually(rectEdge(bob.page, 300, 300), "Bob sees Alice's rectangle");
+  assert.ok(await strokeAt(alice.page, 550, 500)(), 'Alice sees her own stroke');
+
+  // Presence: both see two people
+  await expectEventually(async () => (await bob.page.locator('text=2 online').count()) === 1, 'presence count');
+  await alice.context.close();
+  await bob.context.close();
+});
+
+test('sticky note: concurrent edits from two users merge instead of overwriting', async () => {
+  const alice = await newUser(browser, 'Alice');
+  const id = await createSession(alice.page, 'OT');
+  const bob = await newUser(browser, 'Bob');
+  await joinSession(bob.page, id);
+
+  await alice.page.click('button[title="Sticky Note"]');
+  await alice.page.mouse.click(500, 300);
+  await alice.page.waitForTimeout(400);
+  // Both start from the same text, then type at once
+  await alice.page.mouse.dblclick(500, 330);
+  await alice.page.keyboard.press('Control+A');
+  await alice.page.keyboard.type('Fix login bug');
+  await expectEventually(async () => {
+    await bob.page.mouse.dblclick(500, 330);
+    await bob.page.keyboard.press('Home');
+    return true;
+  }, 'Bob enters edit mode');
+  await Promise.all([
+    alice.page.keyboard.type(' now', { delay: 40 }), // Alice appends
+    bob.page.keyboard.type('(urgent) ', { delay: 40 }), // Bob prepends
+  ]);
+  await alice.page.mouse.click(900, 600);
+  await bob.page.mouse.click(900, 600);
+  await alice.page.waitForTimeout(800);
+
+  // Turn the note into a card on Alice's side and read the merged text from the card title.
+  await alice.page.click('button:has-text("Kanban")');
+  const todo = await alice.page.locator('[data-column="todo"]').boundingBox();
+  await alice.page.mouse.move(500, 360);
+  await alice.page.mouse.down();
+  await alice.page.mouse.move(todo!.x + 60, todo!.y + 40, { steps: 10 });
+  await alice.page.mouse.up();
+  const column = alice.page.locator('[data-column="todo"]');
+  await expectEventually(async () => (await column.innerText()).includes('Fix login bug'), 'card created');
+  // Edits at different places both survive, in order.
+  assert.match(await column.innerText(), /\(urgent\) Fix login bug now/);
+  await alice.context.close();
+  await bob.context.close();
+});
+
+test('drag-to-kanban: element leaves the canvas for everyone and lands in the chosen column', async () => {
+  const alice = await newUser(browser, 'Alice');
+  const id = await createSession(alice.page, 'Kanban');
+  const bob = await newUser(browser, 'Bob');
+  await joinSession(bob.page, id);
+  await bob.page.click('button:has-text("Kanban")');
+  await alice.page.click('button:has-text("Kanban")');
+
+  await alice.page.click('button[title="Rectangle"]');
+  await alice.page.mouse.click(300, 300);
+  await expectEventually(rectEdge(bob.page, 300, 300), 'rect visible to Bob');
+  const done = await alice.page.locator('[data-column="done"]').boundingBox();
+  await alice.page.mouse.move(300, 300);
+  await alice.page.mouse.down();
+  await alice.page.mouse.move(done!.x + 60, done!.y + 30, { steps: 10 });
+  await alice.page.mouse.up();
+
+  const bobDone = bob.page.locator('[data-column="done"]');
+  await expectEventually(async () => (await bobDone.innerText()).includes('Rect'), 'card in Done for Bob');
+  await expectEventually(async () => !(await rectEdge(bob.page, 300, 300)()), 'rect removed from Bob canvas');
+  await alice.context.close();
+  await bob.context.close();
+});
+
+test('permissions: owner can demote an editor to viewer, who is then locked out', async () => {
+  const alice = await newUser(browser, 'Alice');
+  const id = await createSession(alice.page, 'Roles');
+  const bob = await newUser(browser, 'Bob');
+  await joinSession(bob.page, id);
+
+  assert.equal(await bob.page.locator('button[title="Draw"]').count(), 1, 'editors get tools');
+  assert.equal(await bob.page.locator('button:has-text("Export")').count(), 0, 'export is owner-only');
+
+  await alice.page.click('button:has-text("People")');
+  await alice.page.selectOption('select', 'viewer');
+  await expectEventually(async () => (await bob.page.locator('text=View only').count()) === 1, 'Bob sees View only');
+  assert.equal(await bob.page.locator('button[title="Draw"]').count(), 0);
+
+  // A viewer's click on the canvas must not create anything for others
+  await bob.page.click('button:has-text("Kanban")');
+  assert.equal(await bob.page.locator('text=+ Add card').count(), 0, 'viewers cannot add cards');
+  assert.equal(await bob.page.locator('button:has-text("Save board")').count(), 0, 'viewers cannot save snapshots');
+  await alice.context.close();
+  await bob.context.close();
+});
+
+test('export: owner gets JSON with the board data and a 2-page PDF (canvas + kanban)', async () => {
+  const alice = await newUser(browser, 'Alice');
+  await createSession(alice.page, 'Export me');
+  await alice.page.click('button:has-text("Kanban")');
+  await alice.page.click('[data-column="todo"] >> text=+ Add card');
+  await alice.page.fill('input[placeholder="Card title..."]', 'Write the report');
+  await alice.page.keyboard.press('Enter');
+  await alice.page.click('button[title="Rectangle"]');
+  await alice.page.mouse.click(300, 300);
+
+  await alice.page.click('button:has-text("Export")');
+  const [json] = await Promise.all([alice.page.waitForEvent('download'), alice.page.click('text=Export JSON')]);
+  const data = JSON.parse(fs.readFileSync((await json.path())!, 'utf8'));
+  assert.equal(data.session.title, 'Export me');
+  assert.equal(data.elements.length, 1, `elements in export: ${JSON.stringify(data.elements.map((e: any) => e.type))}`);
+  assert.equal(data.cards[0].title, 'Write the report');
+
+  await alice.page.click('button:has-text("Export")');
+  const [pdf] = await Promise.all([alice.page.waitForEvent('download'), alice.page.click('text=Export PDF')]);
+  const raw = fs.readFileSync((await pdf.path())!).toString('latin1');
+  assert.equal((raw.match(/\/Type \/Page\b/g) ?? []).length, 2);
+  await alice.context.close();
+});
+
+test('save board: the whole page becomes a snapshot card, canvas untouched, visible to others', async () => {
+  const alice = await newUser(browser, 'Alice');
+  const id = await createSession(alice.page, 'Snapshots');
+  const bob = await newUser(browser, 'Bob');
+  await joinSession(bob.page, id);
+  await alice.page.click('button:has-text("Kanban")');
+  await bob.page.click('button:has-text("Kanban")');
+
+  await alice.page.click('button[title="Rectangle"]');
+  await alice.page.mouse.click(300, 300);
+  await alice.page.click('button[title="Draw"]');
+  await alice.page.mouse.move(400, 450);
+  await alice.page.mouse.down();
+  await alice.page.mouse.move(700, 450, { steps: 10 });
+  await alice.page.mouse.up();
+  await expectEventually(rectEdge(bob.page, 300, 300), 'Bob sees the rectangle');
+
+  await alice.page.click('button:has-text("Save board")');
+
+  for (const [name, page] of [['Alice', alice.page], ['Bob', bob.page]] as const) {
+    const img = page.locator('[data-column="todo"] img');
+    await expectEventually(async () => (await img.count()) === 1, `${name} sees the snapshot card`);
+    const loaded = await img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 100);
+    assert.ok(loaded, `${name}'s snapshot image decodes`);
+  }
+  // Non-destructive: the shape is still on the canvas for both.
+  assert.ok(await rectEdge(alice.page, 300, 300)(), 'canvas untouched for Alice');
+  assert.ok(await rectEdge(bob.page, 300, 300)(), 'canvas untouched for Bob');
+  await alice.context.close();
+  await bob.context.close();
+});
+
+test('accounts: register, sign out, sign in again and still own the board', async () => {
+  const email = `e2e-${Date.now()}@example.com`;
+  const password = 'correct-horse-battery';
+  const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+  const page = await context.newPage();
+  await page.goto(APP_URL);
+
+  // Create an account
+  await page.click('button:has-text("Create account")');
+  await page.fill('input[placeholder="Display name"]', 'Grace');
+  await page.fill('input[type="email"]', email);
+  await page.fill('input[type="password"]', password);
+  await page.click('form button[type="submit"]');
+  const id = await createSession(page, 'Mine');
+
+  // Sign out from inside the board
+  await page.click('button:has-text("People")');
+  await page.click('text=Sign out');
+  await page.locator('text=Sign in').first().waitFor();
+
+  // A wrong password is rejected with a generic message
+  await page.fill('input[type="email"]', email);
+  await page.fill('input[type="password"]', 'not-the-password');
+  await page.click('form button[type="submit"]');
+  await page.locator('[role="alert"]').waitFor();
+  assert.match(await page.locator('[role="alert"]').innerText(), /Invalid email or password/);
+
+  // The right password gets the same account back: the owner role survives
+  await page.fill('input[type="password"]', password);
+  await page.click('form button[type="submit"]');
+  await joinSession(page, id);
+  await expectEventually(
+    async () => (await page.locator('button:has-text("Export")').count()) === 1,
+    'returning user is still the owner (Export is owner-only)',
+  );
+  assert.equal(await page.locator('text=View only').count(), 0);
+
+  // Registering the same email again is refused
+  const other = await browser.newContext();
+  const p2 = await other.newPage();
+  await p2.goto(APP_URL);
+  await p2.click('button:has-text("Create account")');
+  await p2.fill('input[placeholder="Display name"]', 'Impostor');
+  await p2.fill('input[type="email"]', email);
+  await p2.fill('input[type="password"]', 'another-password-1');
+  await p2.click('form button[type="submit"]');
+  await p2.locator('[role="alert"]').waitFor();
+  assert.match(await p2.locator('[role="alert"]').innerText(), /already exists/);
+  await context.close();
+  await other.close();
+});
