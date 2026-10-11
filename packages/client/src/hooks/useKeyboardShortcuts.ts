@@ -9,7 +9,6 @@ export function useKeyboardShortcuts(fabricRef: React.RefObject<Canvas | null>) 
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger shortcuts when typing in inputs
       const target = e.target as HTMLElement;
       if (
         target.tagName === 'INPUT' ||

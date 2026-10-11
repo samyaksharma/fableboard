@@ -23,7 +23,6 @@ export function useKanban(socket: Socket | null) {
   const removeCard = useKanbanStore((s) => s.removeCard);
   const setCards = useKanbanStore((s) => s.setCards);
 
-  // Listen for remote kanban events
   useEffect(() => {
     if (!socket) return;
 

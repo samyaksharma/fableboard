@@ -37,7 +37,6 @@ export function useStickyNotes(
       (bg as any).__elementId = elementId;
       (bg as any).__stickyRole = 'bg';
 
-      // Textbox (an IText that wraps) keeps long notes inside the sticky.
       const text = new Textbox('Note...', {
         left: (bg.left ?? 0) + 12,
         top: (bg.top ?? 0) + 12,

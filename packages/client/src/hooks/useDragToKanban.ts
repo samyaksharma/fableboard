@@ -73,7 +73,6 @@ export function useDragToKanban({
               ? element.type.charAt(0).toUpperCase() + element.type.slice(1)
               : 'Canvas Item';
 
-      // Column under the cursor (defaults to To Do when released on the header/gap)
       const columnEl = document
         .elementFromPoint(e.clientX, e.clientY)
         ?.closest<HTMLElement>('[data-column]');

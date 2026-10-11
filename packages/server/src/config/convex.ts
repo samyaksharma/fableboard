@@ -9,7 +9,6 @@ export const convexEnabled = client !== null;
 
 type Args = Record<string, unknown>;
 
-/** Call a Convex function in convex/store.ts. Throws on failure; callers decide how to degrade. */
 export async function convexQuery<T = any>(name: string, args: Args = {}): Promise<T> {
   if (!client) throw new Error('Convex not configured');
   const ref = makeFunctionReference<'query'>(`store:${name}`);

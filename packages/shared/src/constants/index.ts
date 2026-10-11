@@ -1,5 +1,4 @@
 export const SocketEvents = {
-  // Connection
   JOIN_SESSION: 'join_session',
   LEAVE_SESSION: 'leave_session',
   SESSION_STATE: 'session_state',
@@ -8,7 +7,6 @@ export const SocketEvents = {
   PARTICIPANT_UPDATED: 'participant_updated',
   SESSION_DELETED: 'session_deleted',
 
-  // Canvas
   DRAW_STROKE: 'draw_stroke',
   ADD_ELEMENT: 'add_element',
   MOVE_ELEMENT: 'move_element',
@@ -18,16 +16,13 @@ export const SocketEvents = {
   TEXT_ACK: 'text_ack',
   TEXT_RESYNC: 'text_resync',
 
-  // Cursor
   CURSOR_MOVE: 'cursor_move',
 
-  // Kanban
   KANBAN_ADD_CARD: 'kanban_add_card',
   KANBAN_MOVE_CARD: 'kanban_move_card',
   KANBAN_UPDATE_CARD: 'kanban_update_card',
   KANBAN_DELETE_CARD: 'kanban_delete_card',
 
-  // Error
   ERROR: 'error',
 } as const;
 

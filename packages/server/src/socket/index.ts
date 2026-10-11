@@ -19,7 +19,6 @@ export function createSocketServer(httpServer: HttpServer): Server {
     },
   });
 
-  // JWT auth middleware
   io.use((socket, next) => {
     const token = socket.handshake.auth?.token as string | undefined;
     if (!token) {

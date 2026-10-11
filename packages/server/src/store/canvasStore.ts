@@ -12,7 +12,6 @@ function getSessionElements(sessionId: string): Map<string, CanvasElement> {
   return memoryStore.get(sessionId)!;
 }
 
-/** Load a session's elements (from Convex) into memory. */
 export function hydrate(sessionId: string, elements: CanvasElement[]) {
   memoryStore.set(sessionId, new Map(elements.map((e) => [e.id, e])));
 }

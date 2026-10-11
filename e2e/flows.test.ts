@@ -30,10 +30,8 @@ test('two browsers: a shape and a stroke drawn by one appear for the other', asy
   const bob = await newUser(browser, 'Bob');
   await joinSession(bob.page, id);
 
-  // Rectangle: click places a default-sized shape at the click point
   await alice.page.click('button[title="Rectangle"]');
   await alice.page.mouse.click(300, 300);
-  // Freehand stroke along y=500
   await alice.page.click('button[title="Draw"]');
   await alice.page.mouse.move(400, 500);
   await alice.page.mouse.down();
@@ -44,7 +42,6 @@ test('two browsers: a shape and a stroke drawn by one appear for the other', asy
   await expectEventually(rectEdge(bob.page, 300, 300), "Bob sees Alice's rectangle");
   assert.ok(await strokeAt(alice.page, 550, 500)(), 'Alice sees her own stroke');
 
-  // Presence: both see two people
   await expectEventually(async () => (await bob.page.locator('text=2 online').count()) === 1, 'presence count');
   await alice.context.close();
   await bob.context.close();
@@ -59,7 +56,6 @@ test('sticky note: concurrent edits from two users merge instead of overwriting'
   await alice.page.click('button[title="Sticky Note"]');
   await alice.page.mouse.click(500, 300);
   await alice.page.waitForTimeout(400);
-  // Both start from the same text, then type at once
   await alice.page.mouse.dblclick(500, 330);
   await alice.page.keyboard.press('Control+A');
   await alice.page.keyboard.type('Fix login bug');
@@ -69,8 +65,8 @@ test('sticky note: concurrent edits from two users merge instead of overwriting'
     return true;
   }, 'Bob enters edit mode');
   await Promise.all([
-    alice.page.keyboard.type(' now', { delay: 40 }), // Alice appends
-    bob.page.keyboard.type('(urgent) ', { delay: 40 }), // Bob prepends
+    alice.page.keyboard.type(' now', { delay: 40 }),
+    bob.page.keyboard.type('(urgent) ', { delay: 40 }),
   ]);
   await alice.page.mouse.click(900, 600);
   await bob.page.mouse.click(900, 600);
@@ -85,7 +81,6 @@ test('sticky note: concurrent edits from two users merge instead of overwriting'
   await alice.page.mouse.up();
   const column = alice.page.locator('[data-column="todo"]');
   await expectEventually(async () => (await column.innerText()).includes('Fix login bug'), 'card created');
-  // Edits at different places both survive, in order.
   assert.match(await column.innerText(), /\(urgent\) Fix login bug now/);
   await alice.context.close();
   await bob.context.close();
@@ -129,7 +124,6 @@ test('permissions: owner can demote an editor to viewer, who is then locked out'
   await expectEventually(async () => (await bob.page.locator('text=View only').count()) === 1, 'Bob sees View only');
   assert.equal(await bob.page.locator('button[title="Draw"]').count(), 0);
 
-  // A viewer's click on the canvas must not create anything for others
   await bob.page.click('button:has-text("Kanban")');
   assert.equal(await bob.page.locator('text=+ Add card').count(), 0, 'viewers cannot add cards');
   assert.equal(await bob.page.locator('button:has-text("Save board")').count(), 0, 'viewers cannot save snapshots');
@@ -186,7 +180,6 @@ test('save board: the whole page becomes a snapshot card, canvas untouched, visi
     const loaded = await img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 100);
     assert.ok(loaded, `${name}'s snapshot image decodes`);
   }
-  // Non-destructive: the shape is still on the canvas for both.
   assert.ok(await rectEdge(alice.page, 300, 300)(), 'canvas untouched for Alice');
   assert.ok(await rectEdge(bob.page, 300, 300)(), 'canvas untouched for Bob');
   await alice.context.close();
@@ -200,7 +193,6 @@ test('accounts: register, sign out, sign in again and still own the board', asyn
   const page = await context.newPage();
   await page.goto(APP_URL);
 
-  // Create an account
   await page.click('button:has-text("Create account")');
   await page.fill('input[placeholder="Display name"]', 'Grace');
   await page.fill('input[type="email"]', email);
@@ -208,19 +200,16 @@ test('accounts: register, sign out, sign in again and still own the board', asyn
   await page.click('form button[type="submit"]');
   const id = await createSession(page, 'Mine');
 
-  // Sign out from inside the board
   await page.click('button:has-text("People")');
   await page.click('text=Sign out');
   await page.locator('text=Sign in').first().waitFor();
 
-  // A wrong password is rejected with a generic message
   await page.fill('input[type="email"]', email);
   await page.fill('input[type="password"]', 'not-the-password');
   await page.click('form button[type="submit"]');
   await page.locator('[role="alert"]').waitFor();
   assert.match(await page.locator('[role="alert"]').innerText(), /Invalid email or password/);
 
-  // The right password gets the same account back: the owner role survives
   await page.fill('input[type="password"]', password);
   await page.click('form button[type="submit"]');
   await joinSession(page, id);
@@ -230,7 +219,6 @@ test('accounts: register, sign out, sign in again and still own the board', asyn
   );
   assert.equal(await page.locator('text=View only').count(), 0);
 
-  // Registering the same email again is refused
   const other = await browser.newContext();
   const p2 = await other.newPage();
   await p2.goto(APP_URL);

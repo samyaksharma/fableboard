@@ -1,5 +1,4 @@
-// Capture the whole visible board as a small JPEG data URL for use on a kanban card.
-// Kept well under the socket payload limit (1 MB) by lowering quality/size until it fits.
+// Kept under the socket payload limit (1 MB) by lowering quality/size until it fits.
 const MAX_CHARS = 700_000;
 
 export function captureBoardSnapshot(): string | null {

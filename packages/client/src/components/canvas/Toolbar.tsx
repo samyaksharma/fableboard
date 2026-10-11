@@ -5,7 +5,6 @@ import { ExportMenu } from '@/components/ui/ExportMenu';
 import { PeopleMenu } from '@/components/session/PeopleMenu';
 import { usePermissions } from '@/hooks/usePermissions';
 
-// Inline SVG so the toolbar looks the same everywhere (no emoji-font dependency).
 const tools: { type: ToolType; label: string; icon: string }[] = [
   { type: 'select', label: 'Select', icon: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3l14 8-6 2-2 6z"/></svg>' },
   { type: 'draw', label: 'Draw', icon: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>' },
@@ -45,7 +44,6 @@ export function Toolbar() {
 
   return (
     <div className="flex items-center gap-2 px-4 py-2 bg-white border-b border-gray-200 shadow-sm">
-      {/* Logo */}
       <span className="font-bold text-lg text-slate-800 mr-4">Fableboard</span>
 
       {!canDraw && (
@@ -53,7 +51,6 @@ export function Toolbar() {
       )}
       {canDraw && (
         <>
-      {/* Tool buttons */}
       <div className="flex items-center gap-1 border-r border-gray-200 pr-3">
         {tools.map((tool) => (
           <button
@@ -70,7 +67,6 @@ export function Toolbar() {
         ))}
       </div>
 
-      {/* Brush width (show when drawing) */}
       {activeTool === 'draw' && (
         <div className="flex items-center gap-2 border-r border-gray-200 pr-3">
           <label className="text-xs text-gray-500">Width</label>
@@ -86,7 +82,6 @@ export function Toolbar() {
         </div>
       )}
 
-      {/* Stroke color */}
       <div className="flex items-center gap-1 border-r border-gray-200 pr-3">
         <label className="text-xs text-gray-500">Stroke</label>
         <div className="flex gap-0.5">
@@ -108,7 +103,6 @@ export function Toolbar() {
         </div>
       </div>
 
-      {/* Fill color (for shapes) */}
       {['rect', 'circle', 'triangle'].includes(activeTool) && (
         <div className="flex items-center gap-1 border-r border-gray-200 pr-3">
           <label className="text-xs text-gray-500">Fill</label>
@@ -140,15 +134,12 @@ export function Toolbar() {
         </>
       )}
 
-      {/* Spacer */}
       <div className="flex-1" />
 
       <PeopleMenu />
 
-      {/* Export */}
       <ExportMenu />
 
-      {/* Kanban toggle */}
       <button
         onClick={toggleKanban}
         className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${

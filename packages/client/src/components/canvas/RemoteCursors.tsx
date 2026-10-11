@@ -17,7 +17,6 @@ export function RemoteCursors({ cursors }: Props) {
             transform: 'translate(-2px, -2px)',
           }}
         >
-          {/* Cursor arrow SVG */}
           <svg
             width="16"
             height="20"

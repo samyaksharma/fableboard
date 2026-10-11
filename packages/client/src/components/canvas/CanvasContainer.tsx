@@ -27,7 +27,6 @@ export function CanvasContainer({ socket, kanbanRef, onDropToKanban }: Props) {
 
   const { canDraw } = usePermissions();
 
-  // Show the empty-state hint only while the canvas really has nothing on it.
   useEffect(() => {
     const canvas = fabricRef.current;
     if (!canvas) return;
@@ -41,7 +40,6 @@ export function CanvasContainer({ socket, kanbanRef, onDropToKanban }: Props) {
     };
   }, [fabricRef]);
 
-  // Viewers can look but not touch.
   useEffect(() => {
     const canvas = fabricRef.current;
     if (!canvas) return;

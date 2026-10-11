@@ -6,7 +6,6 @@ interface AuthState {
   user: JwtPayload | null;
   isAuthenticated: boolean;
   setAuth: (token: string, user: JwtPayload) => void;
-  /** Store a token received from the server (decodes the user from it). */
   setToken: (token: string) => boolean;
   logout: () => void;
   loadFromStorage: () => void;
@@ -17,7 +16,6 @@ function parseJwtPayload(token: string): JwtPayload | null {
     const base64 = token.split('.')[1];
     const json = atob(base64);
     const payload = JSON.parse(json);
-    // Check expiry
     if (payload.exp && payload.exp * 1000 < Date.now()) return null;
     return {
       userId: payload.userId,

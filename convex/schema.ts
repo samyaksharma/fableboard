@@ -12,7 +12,6 @@ export default defineSchema({
     displayName: v.string(),
     avatarUrl: v.string(),
     createdAt: v.string(),
-    // Only for provider "password" accounts: scrypt hash, never the password.
     passwordHash: v.optional(v.string()),
   }).index("by_provider", ["provider", "providerId"]),
 

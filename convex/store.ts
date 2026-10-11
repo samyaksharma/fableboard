@@ -161,8 +161,6 @@ export const deleteSession = mutation({
   },
 });
 
-// --- OAuth users (guests are not stored; their id lives in the JWT) ---
-
 export const getUserByProvider = query({
   args: { secret: v.string(), provider: v.string(), providerId: v.string() },
   handler: async (ctx, { secret, provider, providerId }) => {
@@ -237,7 +235,6 @@ export const deleteUserByProvider = mutation({
   },
 });
 
-// Daily cleanup (see crons.ts): sessions older than 7 days expire, matching the JWT lifetime.
 export const purgeExpired = internalMutation({
   args: {},
   handler: async (ctx) => {

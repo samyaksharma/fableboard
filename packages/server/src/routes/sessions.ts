@@ -64,7 +64,6 @@ router.patch('/sessions/:id/participants/:participantId/role', (req, res) => {
     return;
   }
 
-  // Only session owner can change roles
   const caller = sessionService.getParticipantByUserId(req.params.id, req.user!.userId);
   if (!caller || caller.role !== 'owner') {
     res.status(403).json({ error: 'Only the session owner can change roles' });

@@ -5,7 +5,6 @@ import { convexEnabled, convexQuery, convexMutation, convexWrite } from '../conf
 import type { User, JwtPayload, AuthProvider } from '@fableboard/shared';
 import { generateId, nowISO } from '@fableboard/shared';
 
-// In-memory user store
 const users = new Map<string, User>();
 const providerIndex = new Map<string, string>(); // "github:12345" → userId
 
@@ -46,7 +45,6 @@ export async function findOrCreateUser(profile: {
 
   if (existingId) {
     const user = users.get(existingId)!;
-    // Update mutable fields
     user.displayName = profile.displayName;
     user.avatarUrl = profile.avatarUrl;
     user.email = profile.email;
@@ -102,8 +100,6 @@ export function signToken(user: User): string {
 export function verifyToken(token: string): JwtPayload {
   return jwt.verify(token, config.jwtSecret) as JwtPayload;
 }
-
-// --- GitHub OAuth ---
 
 export async function exchangeGithubCode(code: string): Promise<string> {
   const res = await fetch('https://github.com/login/oauth/access_token', {
@@ -169,8 +165,6 @@ export async function getGithubUser(accessToken: string) {
   };
 }
 
-// --- Google OAuth ---
-
 export async function exchangeGoogleCode(code: string): Promise<string> {
   const redirectUri = `${config.serverUrl}/api/auth/google/callback`;
   console.log('Google token exchange redirect_uri:', redirectUri);
@@ -220,8 +214,6 @@ export async function getGoogleUser(accessToken: string) {
   };
 }
 
-// --- Email + password accounts ---
-
 // scrypt (memory-hard, built into Node). Stored as scrypt$N$r$p$salt$hash.
 const SCRYPT = { N: 2 ** 15, r: 8, p: 1, keylen: 64, maxmem: 128 * 1024 * 1024 };
 
@@ -260,7 +252,7 @@ export async function burnPasswordCheck(password: string): Promise<void> {
   await verifyPassword(password, await dummyHash);
 }
 
-const passwordHashes = new Map<string, string>(); // userId -> hash
+const passwordHashes = new Map<string, string>();
 
 function rowToUser(row: any): User {
   return {
@@ -293,7 +285,6 @@ export async function findPasswordAccount(email: string): Promise<{ user: User; 
   return user && hash ? { user, hash } : null;
 }
 
-/** Create an account. Returns null if the email is already registered. */
 export async function registerPasswordUser(
   email: string,
   password: string,

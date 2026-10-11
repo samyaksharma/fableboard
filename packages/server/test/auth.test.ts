@@ -53,7 +53,6 @@ test('register then log in; the token works on a protected route', async () => {
   const body = await me.json();
   assert.equal(body.user.displayName, 'Ada');
   assert.equal(body.user.provider, 'password');
-  // Same account, same stable user id
   const first = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
   assert.equal(first.userId, body.user.userId);
 });

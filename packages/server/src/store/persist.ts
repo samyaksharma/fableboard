@@ -25,7 +25,6 @@ export function cancelPersist(prefix: string) {
   }
 }
 
-/** Write everything still queued (used on shutdown). */
 export function flushPersist() {
   for (const [key, p] of pending) {
     clearTimeout(p.timer);

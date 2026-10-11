@@ -29,7 +29,7 @@ test('same-position inserts converge with a consistent tie-break', () => {
 
 test('insert inside a concurrent delete range converges and keeps the insert', () => {
   const doc = 'abcdef';
-  const a = [del(1, 4)]; // delete bcde
+  const a = [del(1, 4)];
   const b = [ins(3, 'Z')];
   const [a2, b2] = transformOps(a, b, true);
   const left = applyOperations(applyOperations(doc, a), b2);
@@ -81,8 +81,8 @@ test('two clients + server converge on concurrent typing', () => {
   const a = new OTClient('Note', 0);
   const b = new OTClient('Note', 0);
 
-  const sendA = a.localEdit('Note A'); // append
-  const sendB = b.localEdit('My Note'); // prepend
+  const sendA = a.localEdit('Note A');
+  const sendB = b.localEdit('My Note');
   // Server receives A first, then B
   const accA = server.receive(sendA!.baseVersion, sendA!.ops)!;
   const accB = server.receive(sendB!.baseVersion, sendB!.ops)!;

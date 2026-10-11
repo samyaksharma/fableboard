@@ -83,7 +83,6 @@ export interface KanbanCard {
   assignee: string;
   column: KanbanColumn;
   order: number;
-  /** Optional JPEG data URL: a snapshot of the whole board taken when the card was made */
   snapshot?: string;
   updatedAt: string;
 }
@@ -96,7 +95,6 @@ export interface CursorPosition {
   color: string;
 }
 
-// Socket event payloads
 export interface DrawStrokePayload {
   elementId: string;
   sessionId: string;

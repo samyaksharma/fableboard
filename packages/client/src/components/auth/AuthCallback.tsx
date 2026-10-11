@@ -20,7 +20,6 @@ export function AuthCallback() {
       return;
     }
 
-    // Decode and store
     try {
       const base64 = token.split('.')[1];
       const payload = JSON.parse(atob(base64));
@@ -31,7 +30,6 @@ export function AuthCallback() {
         avatarUrl: payload.avatarUrl,
         provider: payload.provider,
       });
-      // Redirect to home
       window.location.replace('/');
     } catch {
       setError('Invalid token');

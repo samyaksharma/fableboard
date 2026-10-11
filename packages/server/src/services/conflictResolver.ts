@@ -1,9 +1,5 @@
 import { lwwResolve, isNewer, type CanvasElement, type KanbanCard } from '@fableboard/shared';
 
-/**
- * Resolve element position conflicts using LWW.
- * Returns the element that should be kept.
- */
 export function resolveElementConflict(
   incoming: CanvasElement,
   existing: CanvasElement,

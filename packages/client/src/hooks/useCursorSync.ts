@@ -16,7 +16,6 @@ export function useCursorSync(
   );
   const lastEmit = useRef(0);
 
-  // Broadcast local cursor
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
       if (!socket || !session || !currentParticipant || !containerRef.current) return;
@@ -47,7 +46,6 @@ export function useCursorSync(
     return () => container.removeEventListener('mousemove', handleMouseMove);
   }, [containerRef, handleMouseMove]);
 
-  // Listen for remote cursors
   useEffect(() => {
     if (!socket || !currentParticipant) return;
 
@@ -66,7 +64,6 @@ export function useCursorSync(
     };
   }, [socket, currentParticipant]);
 
-  // Clean stale cursors
   useEffect(() => {
     const interval = setInterval(() => {
       setRemoteCursors((prev) => {

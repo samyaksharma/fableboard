@@ -42,7 +42,6 @@ async function join(sessionId: string, user: Awaited<ReturnType<typeof makeUser>
   return { socket: s, state: await state };
 }
 
-/** Owner + editor + viewer in a fresh session. */
 async function setup() {
   const [ua, ub, uv] = await Promise.all([makeUser('A'), makeUser('B'), makeUser('V')]);
   const { session, participant: pa } = sessionService.createSession('t', 'A', ua.id);
@@ -128,7 +127,7 @@ test('LWW: an older move loses and the sender is told the winning state', async 
   a.emit(SocketEvents.MOVE_ELEMENT, move(200, t2));
   await wait(100);
   const correction = once(b, SocketEvents.MOVE_ELEMENT);
-  b.emit(SocketEvents.MOVE_ELEMENT, move(5, t1)); // stale
+  b.emit(SocketEvents.MOVE_ELEMENT, move(5, t1));
   assert.equal((await correction).position.x, 200);
 });
 
@@ -172,7 +171,6 @@ test('OT through the server: concurrent sticky-note edits converge on every clie
   assert.match(ca.c.text, /My/);
   assert.match(ca.c.text, /A!/);
 
-  // A late joiner sees the converged text (and version) from stored state.
   const lateUser = await makeUser('late');
   const p = sessionService.addParticipant(sid, 'late', lateUser.id)!;
   const { state } = await join(sid, lateUser, p.id, 'late');

@@ -7,9 +7,6 @@ export type OTOp =
   | { type: 'insert'; pos: number; chars: string }
   | { type: 'delete'; pos: number; count: number };
 
-/**
- * Apply an operation to a string.
- */
 export function applyOperation(text: string, op: OTOp): string {
   switch (op.type) {
     case 'insert':
@@ -49,7 +46,6 @@ export function transformOperation(base: OTOp, op: OTOp, opWins: boolean): OTOp[
     return [{ ...op, pos: base.pos }]; // insert inside deleted range
   }
 
-  // delete vs delete
   if (base.type !== 'delete' || op.type !== 'delete') return [op];
   if (op.pos >= base.pos + base.count) return [{ ...op, pos: op.pos - base.count }];
   if (op.pos + op.count <= base.pos) return [op];
@@ -94,13 +90,11 @@ export function applyOperations(text: string, ops: OTOp[]): string {
 export function computeOps(oldText: string, newText: string): OTOp[] {
   const ops: OTOp[] = [];
 
-  // Find common prefix
   let prefixLen = 0;
   while (prefixLen < oldText.length && prefixLen < newText.length && oldText[prefixLen] === newText[prefixLen]) {
     prefixLen++;
   }
 
-  // Find common suffix (after prefix)
   let suffixLen = 0;
   while (
     suffixLen < oldText.length - prefixLen &&

@@ -15,7 +15,6 @@ import {
   type CanvasElement,
 } from '@fableboard/shared';
 
-// Helper to enliven serialized fabric objects into live instances
 async function enlivenFromData(data: unknown[]): Promise<FabricObject[]> {
   const { util } = await import('fabric');
   const result = await util.enlivenObjects(data as any[]);
@@ -41,7 +40,6 @@ function stickyData(canvas: Canvas, elementId: string) {
   return { bg, text };
 }
 
-// Keep a note's text pinned to its background.
 function syncStickyText(canvas: Canvas, elementId: string) {
   const { bg, text } = stickyData(canvas, elementId);
   if (!bg || !text) return;
@@ -49,7 +47,6 @@ function syncStickyText(canvas: Canvas, elementId: string) {
   text.setCoords();
 }
 
-// Add a stored element (all of its fabric objects) to the canvas.
 async function addElementToCanvas(canvas: Canvas, el: CanvasElement) {
   const parts: [string, any][] =
     el.type === 'sticky_note'
@@ -81,7 +78,6 @@ export function useCanvasSync(
   const removeElement = useCanvasStore((s) => s.removeElement);
   const setElements = useCanvasStore((s) => s.setElements);
 
-  // Emit local canvas changes to server
   useEffect(() => {
     const canvas = fabricRef.current;
     if (!canvas || !socket || !session) return;
@@ -146,7 +142,6 @@ export function useCanvasSync(
     };
   }, [fabricRef, socket, session, updateElement, removeElement]);
 
-  // Listen for remote changes and apply to canvas
   useEffect(() => {
     if (!socket || !session) return;
     const canvas = fabricRef.current;

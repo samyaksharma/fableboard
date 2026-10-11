@@ -8,8 +8,6 @@ import { registerSchema, loginSchema } from '@fableboard/shared';
 
 const router: ExpressRouter = Router();
 
-// --- Which sign-in methods are available (lets the client hide unconfigured buttons) ---
-
 router.get('/auth/providers', (_req, res) => {
   res.json({
     password: true,
@@ -18,8 +16,6 @@ router.get('/auth/providers', (_req, res) => {
     google: Boolean(config.googleClientId && config.googleClientSecret),
   });
 });
-
-// --- Email + password ---
 
 const credentialLimiter = rateLimit({ windowMs: 15 * 60_000, max: 30 });
 
@@ -93,8 +89,6 @@ router.post('/auth/login', credentialLimiter, async (req, res) => {
   }
 });
 
-// --- GitHub ---
-
 router.get('/auth/github', (_req, res) => {
   if (!config.githubClientId || !config.githubClientSecret) {
     res.redirect(`${config.clientUrl}/auth/callback?error=github_not_configured`);
@@ -127,8 +121,6 @@ router.get('/auth/github/callback', async (req, res) => {
     res.redirect(`${config.clientUrl}/auth/callback?error=${encodeURIComponent(message)}`);
   }
 });
-
-// --- Google ---
 
 router.get('/auth/google', (_req, res) => {
   if (!config.googleClientId || !config.googleClientSecret) {
@@ -164,8 +156,6 @@ router.get('/auth/google/callback', async (req, res) => {
   }
 });
 
-// --- Guest (no OAuth required) ---
-
 router.post('/auth/guest', express.json(), async (req, res) => {
   const displayName = String(req.body?.displayName ?? '').trim().slice(0, 40);
   if (!displayName) {
@@ -181,8 +171,6 @@ router.post('/auth/guest', express.json(), async (req, res) => {
   });
   res.json({ token: authService.signToken(user) });
 });
-
-// --- Me ---
 
 router.get('/auth/me', requireAuth, (req, res) => {
   res.json({ user: req.user });

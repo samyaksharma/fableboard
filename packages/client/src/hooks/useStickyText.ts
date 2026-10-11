@@ -57,7 +57,6 @@ export function useStickyText(fabricRef: React.RefObject<Canvas | null>, socket:
       setStoreText(id, client.text, client.version);
     };
 
-    // Double-click anywhere on a note to edit it.
     const onDblClick = (e: { target?: FabricObject }) => {
       const role = (e.target as any)?.__stickyRole;
       if (role !== 'bg') return;

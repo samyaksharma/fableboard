@@ -27,12 +27,10 @@ export default function App() {
     loadFromStorage();
   }, [loadFromStorage]);
 
-  // Handle OAuth callback route
   if (window.location.pathname === '/auth/callback') {
     return <AuthCallback />;
   }
 
-  // Not authenticated — show login
   if (!isAuthenticated) {
     return (
       <>
@@ -42,7 +40,6 @@ export default function App() {
     );
   }
 
-  // Authenticated but no session — show join/create
   if (!session) {
     return (
       <>

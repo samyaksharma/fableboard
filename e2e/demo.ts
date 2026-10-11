@@ -1,7 +1,3 @@
-/**
- * Records the demo: `pnpm demo` -> docs/demo.webm (+ docs/*.png stills).
- * Alice's screen is recorded; Bob is a second real browser whose cursor and edits show up live.
- */
 import fs from 'node:fs';
 import path from 'node:path';
 import { chromium, type Page } from 'playwright';
@@ -51,7 +47,6 @@ async function main() {
     await caption(page, 'Fableboard: sketch it, sync it, ship it');
     await pause(1800);
 
-    // Bob joins from another browser
     const bob = await newUser(browser, 'Bob', { viewport: { width: 1280, height: 720 } });
     await joinSession(bob.page, id);
     await caption(page, 'Bob joins from a second browser: presence + live cursors');
@@ -59,7 +54,6 @@ async function main() {
     await move(bob.page, 520, 420, 40);
     await pause(1800);
 
-    // Alice draws
     await caption(page, 'Freehand drawing and shapes sync instantly');
     await page.click('button[title="Draw"]');
     await move(page, 160, 200);
@@ -74,7 +68,6 @@ async function main() {
     await pause(1200);
     await page.screenshot({ path: path.join(docs, 'board.png') });
 
-    // Sticky note + concurrent text edits
     await caption(page, 'Sticky notes use operational transform: concurrent typing merges');
     await page.click('button[title="Sticky Note"]');
     await move(page, 620, 300);
@@ -95,7 +88,6 @@ async function main() {
     await pause(1500);
     await page.screenshot({ path: path.join(docs, 'sticky-ot.png') });
 
-    // Drag to kanban
     await caption(page, 'Drag any element into a kanban column to make it a task');
     await page.click('button:has-text("Kanban")');
     await pause(800);
@@ -113,7 +105,6 @@ async function main() {
     await page.mouse.up();
     await pause(1500);
 
-    // Move a card between columns
     await caption(page, 'Cards drag between To Do, In Progress and Done, synced for everyone');
     await page
       .locator('[data-column="todo"] >> text=Rect')
@@ -122,7 +113,6 @@ async function main() {
     await pause(1500);
     await page.screenshot({ path: path.join(docs, 'kanban.png') });
 
-    // Roles
     await caption(page, 'Owner controls roles: Bob becomes a viewer instantly');
     await page.click('button:has-text("People")');
     await pause(900);
@@ -131,7 +121,6 @@ async function main() {
     await page.screenshot({ path: path.join(docs, 'roles.png') });
     await page.click('button:has-text("People")');
 
-    // Export
     await caption(page, 'Export the canvas and board to PDF, or everything to JSON');
     await page.click('button:has-text("Export")');
     await pause(2200);

@@ -12,7 +12,6 @@ function getSessionCards(sessionId: string): Map<string, KanbanCard> {
   return memoryStore.get(sessionId)!;
 }
 
-/** Load a session's cards (from Convex) into memory. */
 export function hydrate(sessionId: string, cards: KanbanCard[]) {
   memoryStore.set(sessionId, new Map(cards.map((c) => [c.id, c])));
 }

@@ -22,12 +22,11 @@ async function assertPortFree(url: string, label: string) {
   try {
     await fetch(url);
   } catch {
-    return; // connection refused: free
+    return;
   }
   throw new Error(`${label} is already running on its port; stop it before running the E2E suite`);
 }
 
-/** Start the real API (in-memory, no Convex) and the Vite client. Returns a stop function. */
 export async function startStack(): Promise<() => Promise<void>> {
   await assertPortFree(API_URL, 'The API server (port 3001)');
   await assertPortFree(APP_URL, 'The client (port 5173)');
@@ -65,7 +64,7 @@ export async function newUser(
   page.on('dialog', (d) => d.accept());
   await beforeGoto?.(page);
   await page.goto(APP_URL);
-  await page.click('button:has-text("Continue as guest")'); // reveals the name field
+  await page.click('button:has-text("Continue as guest")');
   await page.fill('input[placeholder="Your display name"]', name);
   await page.click('button:has-text("Continue as guest")');
   await page.locator('text=Create New Session').waitFor();
@@ -88,7 +87,6 @@ export async function joinSession(page: Page, sessionId: string) {
   await page.locator('.font-mono').first().waitFor();
 }
 
-/** True if any pixel in the page-coordinate box (x, y, w, h) is darker than the background. */
 export async function regionHasInk(page: Page, x: number, y: number, w: number, h: number): Promise<boolean> {
   return page.evaluate(([px, py, pw, ph]) => {
     const canvas = document.querySelector('canvas.lower-canvas') as HTMLCanvasElement;

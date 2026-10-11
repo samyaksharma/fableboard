@@ -38,7 +38,6 @@ export function KanbanPanel({ socket, kanbanRef }: Props) {
 
   const sessionTitle = useSessionStore((s) => s.session?.title ?? 'Board');
 
-  // Non-destructive: the canvas is left as it is; the card carries a picture of it.
   const handleSaveBoard = useCallback(() => {
     const snapshot = captureBoardSnapshot();
     if (!snapshot) {

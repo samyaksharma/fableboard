@@ -45,7 +45,6 @@ export function useExport() {
 
     pdf.addImage(imgData, 'PNG', 0, 0, captured.width, captured.height);
 
-    // Page 2: the kanban board, one block per column.
     pdf.addPage([captured.width, captured.height], captured.width > captured.height ? 'landscape' : 'portrait');
     const pageW = captured.width;
     const colW = pageW / KANBAN_COLUMN_ORDER.length;
