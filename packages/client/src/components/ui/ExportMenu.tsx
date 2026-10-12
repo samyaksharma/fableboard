@@ -13,7 +13,7 @@ export function ExportMenu() {
     <div className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="px-3 py-1.5 rounded text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+        className="px-2 sm:px-3 py-1.5 rounded text-xs sm:text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
       >
         Export
       </button>

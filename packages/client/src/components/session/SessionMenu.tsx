@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import type { Participant, Session } from '@fableboard/shared';
 import { useSessionStore } from '@/stores/sessionStore';
 import { showToast } from '@/components/ui/Toast';
 import { resetWorkspace } from '@/services/workspace';
+import { openSession } from '@/services/sessions';
 import * as api from '@/services/api';
 
 const ROLE_STYLE: Record<string, string> = {
@@ -18,8 +18,6 @@ export function SessionMenu() {
   const [busy, setBusy] = useState(false);
   const session = useSessionStore((s) => s.session);
   const me = useSessionStore((s) => s.currentParticipant);
-  const setSession = useSessionStore((s) => s.setSession);
-  const setCurrentParticipant = useSessionStore((s) => s.setCurrentParticipant);
 
   useEffect(() => {
     if (!open) return;
@@ -34,13 +32,7 @@ export function SessionMenu() {
     if (id === session?.id || busy) return;
     setBusy(true);
     try {
-      const [data, joined] = await Promise.all([
-        api.getSession(id),
-        api.joinSession(id, me?.displayName ?? 'Guest'),
-      ]);
-      resetWorkspace();
-      setSession(data.session as Session);
-      setCurrentParticipant(joined.participant as Participant);
+      await openSession(id, me?.displayName ?? 'Guest');
       setOpen(false);
     } catch (err: any) {
       showToast(err.message || 'Could not open that session', 'error');
@@ -61,7 +53,7 @@ export function SessionMenu() {
         <span className="text-xs text-gray-400">&#9662;</span>
       </button>
       {open && (
-        <div className="absolute left-0 top-full mt-2 bg-white rounded-lg shadow-lg border z-50 w-80">
+        <div className="absolute left-0 top-full mt-2 bg-white rounded-lg shadow-lg border z-50 w-80 max-w-[calc(100vw-1.5rem)]">
           <div className="px-4 py-3 border-b">
             <p className="text-xs text-gray-400">Current session</p>
             <p className="text-sm font-medium text-gray-800 truncate">{session?.title}</p>

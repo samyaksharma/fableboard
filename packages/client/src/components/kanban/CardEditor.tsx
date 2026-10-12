@@ -32,7 +32,7 @@ export function CardEditor({ card, onSave, onClose }: Props) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
       <form
         onSubmit={handleSubmit}
-        className="bg-white rounded-lg shadow-xl p-4 w-80 space-y-3"
+        className="bg-white rounded-lg shadow-xl p-4 w-[calc(100vw-2rem)] max-w-sm space-y-3"
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="font-semibold text-gray-800">Edit Card</h3>

@@ -6,6 +6,7 @@ import { useKanbanStore } from '@/stores/kanbanStore';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useKanban } from '@/hooks/useKanban';
 import { useSessionStore } from '@/stores/sessionStore';
+import { useUIStore } from '@/stores/uiStore';
 import { captureBoardSnapshot } from '@/utils/boardSnapshot';
 import { showToast } from '@/components/ui/Toast';
 import { KanbanColumn } from './KanbanColumn';
@@ -49,16 +50,24 @@ export function KanbanPanel({ socket, kanbanRef }: Props) {
     showToast('Board saved to the kanban', 'success');
   }, [emitAddCard, sessionTitle]);
 
+  const toggleKanban = useUIStore((s) => s.toggleKanban);
   const editingCard = editingCardId ? cards[editingCardId] : null;
 
   return (
     <div
       ref={kanbanRef as React.RefObject<HTMLDivElement>}
-      className="w-80 bg-white border-l border-gray-200 flex flex-col overflow-hidden"
+      className="fixed inset-x-0 bottom-0 z-30 h-[60dvh] rounded-t-2xl border-t shadow-2xl md:static md:z-auto md:h-auto md:w-80 md:rounded-none md:border-t-0 md:border-l md:shadow-none bg-white border-gray-200 flex flex-col overflow-hidden"
     >
       <div className="px-4 py-3 border-b border-gray-200">
         <div className="flex items-center justify-between gap-2">
           <h2 className="font-semibold text-gray-800">Kanban Board</h2>
+          <button
+            onClick={toggleKanban}
+            aria-label="Close kanban board"
+            className="md:hidden ml-auto text-sm text-gray-500 px-2 py-1"
+          >
+            Close
+          </button>
           {canManageCards && (
             <button
               onClick={handleSaveBoard}

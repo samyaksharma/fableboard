@@ -58,7 +58,7 @@ export function Toolbar() {
       key={key}
       onClick={onPick}
       aria-label={`Colour ${color}`}
-      className={`w-5 h-5 rounded-full border-2 shrink-0 ${
+      className={`w-6 h-6 md:w-5 md:h-5 rounded-full border-2 shrink-0 ${
         selected ? 'border-blue-500 scale-110' : 'border-gray-300'
       }`}
       style={{
@@ -75,21 +75,21 @@ export function Toolbar() {
 
   return (
     <div className="bg-white border-b border-gray-200 shadow-sm">
-      <div className="flex flex-nowrap items-center gap-2 px-4 py-2">
+      <div className="flex flex-wrap md:flex-nowrap items-center gap-x-2 gap-y-1 px-3 md:px-4 py-2">
         <SessionMenu />
 
         {!canDraw && (
           <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-500">View only</span>
         )}
         {canDraw && (
-          <>
-            <div className="flex items-center gap-1 border-r border-gray-200 pr-3">
+          <div className="order-last basis-full md:order-none md:basis-auto flex items-center gap-0 md:gap-1 overflow-x-auto md:min-w-0">
+            <div className="flex items-center gap-0 md:gap-1 border-r border-gray-200 pr-1 md:pr-3 mr-1 md:mr-0 shrink-0">
               {tools.map((tool) => (
                 <button
                   key={tool.type}
                   title={tool.label}
                   onClick={() => setActiveTool(tool.type)}
-                  className={`w-9 h-9 flex items-center justify-center rounded text-lg transition-colors ${
+                  className={`w-8 md:w-9 h-9 shrink-0 flex items-center justify-center rounded text-lg transition-colors ${
                     activeTool === tool.type
                       ? 'bg-blue-100 text-blue-700 ring-2 ring-blue-400'
                       : 'hover:bg-gray-100 text-gray-600'
@@ -99,13 +99,13 @@ export function Toolbar() {
               ))}
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0 md:gap-1 shrink-0">
               <button
                 title="Undo (Ctrl+Z)"
                 aria-label="Undo"
                 disabled={!canUndo}
                 onClick={() => historyControls.undo()}
-                className="w-9 h-9 flex items-center justify-center rounded text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent"
+                className="w-8 md:w-9 h-9 shrink-0 flex items-center justify-center rounded text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent"
                 dangerouslySetInnerHTML={{ __html: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/></svg>' }}
               />
               <button
@@ -113,11 +113,11 @@ export function Toolbar() {
                 aria-label="Redo"
                 disabled={!canRedo}
                 onClick={() => historyControls.redo()}
-                className="w-9 h-9 flex items-center justify-center rounded text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent"
+                className="w-8 md:w-9 h-9 shrink-0 flex items-center justify-center rounded text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent"
                 dangerouslySetInnerHTML={{ __html: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 000 12h3"/></svg>' }}
               />
             </div>
-          </>
+          </div>
         )}
 
         <div className="flex-1" />
@@ -126,7 +126,7 @@ export function Toolbar() {
         <ExportMenu />
         <button
           onClick={toggleKanban}
-          className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+          className={`px-2 sm:px-3 py-1.5 rounded text-xs sm:text-sm font-medium transition-colors ${
             kanbanOpen
               ? 'bg-blue-100 text-blue-700'
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'

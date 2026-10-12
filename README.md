@@ -11,7 +11,8 @@ sticky note, drag it into a column: the handoff from whiteboard to task list is 
 |---|---|
 | **Shared canvas** | Freehand drawing, lines, arrows, rectangles, circles, triangles, sticky notes, and an eraser. Everything is synced live. |
 | **Undo / redo** | Per-user history (Ctrl+Z, Ctrl+Shift+Z) for adding, moving and deleting; changes replay as normal edits so everyone stays in sync. |
-| **Sessions menu** | Switch between your boards or go back to the start screen from the Fableboard menu. |
+| **Sessions** | The start screen lists your boards and the boards shared with you; join with a code or an invite link (`/?join=CODE`). The Fableboard menu switches boards from inside a session. |
+| **Mobile** | Responsive layout with touch drawing; the kanban opens as a bottom sheet and cards move with a column picker. |
 | **Realtime collaboration** | Presence, live cursors, late-join and reconnect replay of the full board. |
 | **Drag-to-kanban** | Drag any element into To Do / In Progress / Done. It becomes a card (sticky text becomes the title) and leaves the canvas for everyone. |
 | **Conflict resolution** | Sticky text: operational transform. Element positions: last-write-wins. Kanban cards: LWW with the server authoritative. |

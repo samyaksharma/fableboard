@@ -67,12 +67,12 @@ export async function newUser(
   await page.click('button:has-text("Continue as guest")');
   await page.fill('input[placeholder="Your display name"]', name);
   await page.click('button:has-text("Continue as guest")');
-  await page.locator('text=Create New Session').waitFor();
+  await page.locator('button:has-text("New board")').waitFor();
   return { context, page };
 }
 
 export async function createSession(page: Page, title: string): Promise<string> {
-  await page.click('text=Create New Session');
+  await page.click('button:has-text("New board")');
   await page.fill('input[placeholder="Session title"]', title);
   await page.click('button:has-text("Create")');
   const id = page.locator('.font-mono').first();
@@ -81,8 +81,8 @@ export async function createSession(page: Page, title: string): Promise<string> 
 }
 
 export async function joinSession(page: Page, sessionId: string) {
-  await page.click('text=Join Existing Session');
-  await page.fill('input[placeholder="Session ID"]', sessionId);
+  await page.click('button:has-text("Join with code")');
+  await page.fill('input[placeholder="Session code"]', sessionId);
   await page.click('button:has-text("Join")');
   await page.locator('.font-mono').first().waitFor();
 }

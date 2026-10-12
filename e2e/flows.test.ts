@@ -352,7 +352,7 @@ test('session menu: leave a board, start another, and switch back from the list'
   // Leave to the start screen and make a second session
   await alice.page.click('button:has-text("Fableboard")');
   await alice.page.click('text=New or join another session');
-  await alice.page.locator('text=Create New Session').waitFor();
+  await alice.page.locator('button:has-text("New board")').waitFor();
   await createSession(alice.page, 'Board Two');
   assert.equal(await alice.page.locator('text=Sketch it. Sync it. Ship it.').count(), 1, 'fresh empty board');
 
@@ -364,4 +364,102 @@ test('session menu: leave a board, start another, and switch back from the list'
   await alice.page.click('button:has-text("Board One")');
   await expectEventually(rectEdge(alice.page, 300, 300), 'Board One comes back with its rectangle');
   await alice.context.close();
+});
+
+async function leaveToHome(page: any) {
+  await page.click('button:has-text("Fableboard")');
+  await page.click('text=New or join another session');
+  await page.locator('button:has-text("New board")').waitFor();
+}
+
+test('home screen: your boards and boards shared with you are listed and openable', async () => {
+  const alice = await newUser(browser, 'Alice');
+  const id = await createSession(alice.page, 'Planning');
+  const bob = await newUser(browser, 'Bob');
+  await joinSession(bob.page, id);
+
+  await leaveToHome(alice.page);
+  const mine = alice.page.locator('section:has-text("Your boards")');
+  await expectEventually(async () => (await mine.innerText()).includes('Planning'), 'Alice sees it under Your boards');
+  assert.match(await mine.innerText(), /owner/);
+
+  await leaveToHome(bob.page);
+  const shared = bob.page.locator('section:has-text("Shared with you")');
+  await expectEventually(async () => (await shared.innerText()).includes('Planning'), 'Bob sees it under Shared with you');
+  assert.match(await shared.innerText(), /editor/);
+  assert.ok(!(await bob.page.locator('section:has-text("Your boards")').innerText()).includes('Planning'));
+
+  await shared.locator('button:has-text("Planning")').click();
+  await bob.page.locator('.font-mono').first().waitFor();
+  assert.equal((await bob.page.locator('.font-mono').first().innerText()).trim(), id);
+  await alice.context.close();
+  await bob.context.close();
+});
+
+test('invite link: opening /?join=CODE signs in and lands on that board', async () => {
+  const alice = await newUser(browser, 'Alice');
+  const id = await createSession(alice.page, 'Invite me');
+  const carol = await newUser(browser, 'Carol');
+  await carol.page.goto(`${APP_URL}/?join=${id}`);
+  await carol.page.locator('.font-mono').first().waitFor();
+  assert.equal((await carol.page.locator('.font-mono').first().innerText()).trim(), id);
+  assert.ok(!carol.page.url().includes('join='), 'the code is removed from the address bar');
+  await alice.context.close();
+  await carol.context.close();
+});
+
+test('mobile: usable at phone width with touch drawing, no sideways scroll', async () => {
+  const mia = await newUser(browser, 'Mia', {
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+    deviceScaleFactor: 1,
+  });
+  const page = mia.page;
+  const overflow = () =>
+    page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  assert.ok((await overflow()) <= 1, 'home screen fits the width');
+
+  await createSession(page, 'Phone');
+  assert.ok((await overflow()) <= 1, 'board fits the width');
+  const tool = page.locator('button[title="Rectangle"]');
+  const box = await tool.boundingBox();
+  assert.ok(box && box.x >= 0 && box.x + box.width <= 390, 'tools are reachable on screen');
+  const redo = await page.locator('button[aria-label="Redo"]').boundingBox();
+  assert.ok(redo && redo.x + redo.width <= 390, 'undo and redo are both on screen');
+
+  // Tap to place a shape
+  await tool.tap();
+  await page.touchscreen.tap(150, 420);
+  await expectEventually(() => regionHasInk(page, 120, 378, 60, 4), 'tap placed a rectangle');
+
+  // Freehand with a real touch stroke
+  await page.locator('button[title="Draw"]').tap();
+  const cdp = await mia.context.newCDPSession(page);
+  const touch = (type: string, x?: number, y?: number) =>
+    cdp.send('Input.dispatchTouchEvent', {
+      type,
+      touchPoints: x === undefined ? [] : [{ x, y: y! }],
+    });
+  await touch('touchStart', 60, 600);
+  for (let i = 1; i <= 12; i++) await touch('touchMove', 60 + i * 20, 600);
+  await touch('touchEnd');
+  await expectEventually(() => regionHasInk(page, 160, 596, 40, 8), 'touch stroke drew a line');
+
+  // Kanban opens as a bottom sheet and a card can be moved without drag-and-drop
+  await page.locator('button:has-text("Kanban")').tap();
+  const todo = page.locator('[data-column="todo"]');
+  await todo.waitFor();
+  const sheet = await todo.boundingBox();
+  assert.ok(sheet && sheet.x >= 0 && sheet.x + sheet.width <= 390, 'kanban fits the width');
+  assert.ok((await overflow()) <= 1, 'board with kanban open fits the width');
+  await todo.locator('text=+ Add card').tap();
+  await page.fill('input[placeholder="Card title..."]', 'Phone task');
+  await page.keyboard.press('Enter');
+  await page.selectOption('select[aria-label="Move card to column"]', 'done');
+  await expectEventually(
+    async () => (await page.locator('[data-column="done"]').innerText()).includes('Phone task'),
+    'card moved to Done from the select',
+  );
+  await mia.context.close();
 });

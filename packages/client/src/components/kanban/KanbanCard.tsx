@@ -1,15 +1,17 @@
 import { useState } from 'react';
-import type { KanbanCard as KanbanCardType } from '@fableboard/shared';
+import { KANBAN_COLUMN_LABELS, KANBAN_COLUMN_ORDER } from '@fableboard/shared';
+import type { KanbanCard as KanbanCardType, KanbanColumn } from '@fableboard/shared';
 
 interface Props {
   card: KanbanCardType;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
   onDragStart: (e: React.DragEvent, card: KanbanCardType) => void;
+  onMove: (column: KanbanColumn) => void;
   readOnly?: boolean;
 }
 
-export function KanbanCard({ card, onEdit, onDelete, onDragStart, readOnly = false }: Props) {
+export function KanbanCard({ card, onEdit, onDelete, onDragStart, onMove, readOnly = false }: Props) {
   const [zoomed, setZoomed] = useState(false);
   return (
     <div
@@ -40,6 +42,20 @@ export function KanbanCard({ card, onEdit, onDelete, onDragStart, readOnly = fal
         </div>
         )}
       </div>
+      {!readOnly && (
+        <select
+          value={card.column}
+          onChange={(e) => onMove(e.target.value as KanbanColumn)}
+          aria-label="Move card to column"
+          className="md:hidden mt-2 w-full text-xs border rounded px-2 py-1.5 bg-white text-gray-600"
+        >
+          {KANBAN_COLUMN_ORDER.map((c) => (
+            <option key={c} value={c}>
+              {KANBAN_COLUMN_LABELS[c]}
+            </option>
+          ))}
+        </select>
+      )}
       {card.snapshot && (
         <>
           <img

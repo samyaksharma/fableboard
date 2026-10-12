@@ -75,8 +75,9 @@ export function LoginPage() {
   };
 
   return (
-    <div className="h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 overflow-y-auto py-6">
-      <div className="bg-white rounded-xl shadow-lg p-8 w-96">
+    <div className="h-full overflow-y-auto bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="min-h-full flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl shadow-lg p-5 sm:p-8 w-full max-w-sm">
         <h1 className="text-2xl font-bold text-gray-800 text-center mb-1">Fableboard</h1>
         <p className="text-sm text-gray-500 text-center mb-5">Sketch it. Sync it. Ship it.</p>
 
@@ -199,6 +200,7 @@ export function LoginPage() {
             Continue as guest
           </button>
         )}
+      </div>
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import { PermissionsManager } from './PermissionsManager';
 import { showToast } from '@/components/ui/Toast';
 import { useAuthStore } from '@/stores/authStore';
 import { resetWorkspace } from '@/services/workspace';
+import { inviteLink } from '@/services/sessions';
 import * as api from '@/services/api';
 
 export function PeopleMenu() {
@@ -23,6 +24,13 @@ export function PeopleMenu() {
     );
   };
 
+  const copyInvite = () => {
+    navigator.clipboard?.writeText(inviteLink(session.id)).then(
+      () => showToast('Invite link copied', 'success'),
+      () => showToast(inviteLink(session.id), 'info'),
+    );
+  };
+
   const handleDelete = async () => {
     if (!window.confirm('Delete this session for everyone? This cannot be undone.')) return;
     try {
@@ -37,20 +45,25 @@ export function PeopleMenu() {
     <div className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="px-3 py-1.5 rounded text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+        className="px-2 sm:px-3 py-1.5 rounded text-xs sm:text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
       >
         People ({participants.length})
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border z-50 w-72">
+        <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border z-50 w-72 max-w-[calc(100vw-1.5rem)]">
           <div className="p-3 border-b flex items-center justify-between">
             <div className="min-w-0">
-              <p className="text-xs text-gray-400">Session ID (share to invite)</p>
+              <p className="text-xs text-gray-400">Session code (share to invite)</p>
               <p className="text-sm font-mono truncate">{session.id}</p>
             </div>
-            <button onClick={copyId} className="text-xs text-blue-600 hover:underline ml-2">
-              Copy
-            </button>
+            <div className="flex flex-col items-end gap-1 ml-2 shrink-0">
+              <button onClick={copyInvite} className="text-xs text-blue-600 hover:underline">
+                Copy invite link
+              </button>
+              <button onClick={copyId} className="text-xs text-gray-500 hover:underline">
+                Copy code
+              </button>
+            </div>
           </div>
           {canManageUsers ? (
             <PermissionsManager />

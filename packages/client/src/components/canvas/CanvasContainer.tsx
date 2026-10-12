@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Socket } from 'socket.io-client';
 import { useCanvas } from '@/hooks/useCanvas';
 import { useDrawing } from '@/hooks/useDrawing';
@@ -74,36 +74,41 @@ export function CanvasContainer({ socket, kanbanRef, onDropToKanban }: Props) {
     onDropToKanban: onDropToKanban ?? (() => {}),
   });
 
-  const handleCanvasClick = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      const canvas = fabricRef.current;
-      if (!canvas || !canDraw) return;
+  // Placement uses Fabric's pointer events, not DOM click: Fabric suppresses the synthesized
+  // click for touch, so a React onClick would never fire on a phone.
+  useEffect(() => {
+    const canvas = fabricRef.current;
+    if (!canvas || !canDraw) return;
+    const shapeTools: ToolType[] = ['rect', 'circle', 'triangle'];
+    let downAt: { x: number; y: number } | null = null;
 
-      const target = canvas.findTarget(e.nativeEvent as any);
-      if (target) return;
+    const onDown = (e: { e: Event }) => {
+      const p = canvas.getScenePoint(e.e as any);
+      downAt = { x: p.x, y: p.y };
+    };
+    const onUp = (e: { e: Event; target?: unknown }) => {
+      const start = downAt;
+      downAt = null;
+      if (!start || e.target) return; // began elsewhere, or released over an existing object
+      const p = canvas.getScenePoint(e.e as any);
+      if (Math.hypot(p.x - start.x, p.y - start.y) > 6) return; // a drag, not a tap
+      if (shapeTools.includes(activeTool)) createShape(activeTool, p.x, p.y);
+      else if (activeTool === 'sticky_note') createStickyNote(p.x, p.y);
+    };
 
-      const rect = containerRef.current?.getBoundingClientRect();
-      if (!rect) return;
-
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-
-      const shapeTools: ToolType[] = ['rect', 'circle', 'triangle'];
-      if (shapeTools.includes(activeTool)) {
-        createShape(activeTool, x, y);
-      } else if (activeTool === 'sticky_note') {
-        createStickyNote(x, y);
-      }
-    },
-    [fabricRef, containerRef, canDraw, activeTool, createShape, createStickyNote],
-  );
+    canvas.on('mouse:down', onDown as any);
+    canvas.on('mouse:up', onUp as any);
+    return () => {
+      canvas.off('mouse:down', onDown as any);
+      canvas.off('mouse:up', onUp as any);
+    };
+  }, [fabricRef, canDraw, activeTool, createShape, createStickyNote]);
 
   return (
     <div
       ref={containerRef}
       className="flex-1 relative overflow-hidden"
       onPointerDownCapture={() => fabricRef.current?.calcOffset()}
-      onClick={handleCanvasClick}
     >
       <canvas ref={canvasRef} />
       {isEmpty && (

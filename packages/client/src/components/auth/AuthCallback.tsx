@@ -39,7 +39,7 @@ export function AuthCallback() {
   if (error) {
     return (
       <div className="h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="bg-white rounded-xl shadow-lg p-8 w-96 text-center">
+        <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8 w-full max-w-sm mx-4 text-center">
           <h1 className="text-xl font-bold text-gray-800 mb-2">Authentication Error</h1>
           <p className="text-sm text-red-600 mb-4">{error}</p>
           <a
@@ -55,7 +55,7 @@ export function AuthCallback() {
 
   return (
     <div className="h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="bg-white rounded-xl shadow-lg p-8 w-96 text-center">
+      <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8 w-full max-w-sm mx-4 text-center">
         <p className="text-sm text-gray-500">Signing in...</p>
       </div>
     </div>

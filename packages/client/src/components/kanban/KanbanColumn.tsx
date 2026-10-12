@@ -79,6 +79,7 @@ export function KanbanColumn({
             onEdit={onEdit}
             onDelete={onDelete}
             onDragStart={onDragStart}
+            onMove={(c) => onMoveCard(card.id, c, Date.now())}
             readOnly={readOnly}
           />
         ))}

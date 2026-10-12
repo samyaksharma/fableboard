@@ -32,15 +32,15 @@ export function useDragToKanban({
     // Runs after the kanban handler has had its chance to read the flag.
     const clear = () => setTimeout(() => (dragging.current = false), 0);
     canvas.on('object:moving', onMoving);
-    document.addEventListener('mouseup', clear);
+    document.addEventListener('pointerup', clear);
     return () => {
       canvas.off('object:moving', onMoving);
-      document.removeEventListener('mouseup', clear);
+      document.removeEventListener('pointerup', clear);
     };
   }, [fabricRef]);
 
   const handleDragEnd = useCallback(
-    (e: MouseEvent) => {
+    (e: PointerEvent) => {
       const wasDragging = dragging.current;
       dragging.current = false;
       if (!wasDragging) return;
@@ -97,7 +97,7 @@ export function useDragToKanban({
 
   useEffect(() => {
     if (!kanbanOpen) return;
-    document.addEventListener('mouseup', handleDragEnd);
-    return () => document.removeEventListener('mouseup', handleDragEnd);
+    document.addEventListener('pointerup', handleDragEnd);
+    return () => document.removeEventListener('pointerup', handleDragEnd);
   }, [kanbanOpen, handleDragEnd]);
 }
