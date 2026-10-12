@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
-import { API_BASE } from '@/services/config';
+import { API_BASE, OAUTH_ENABLED } from '@/services/config';
 
 type Mode = 'signin' | 'register';
 interface Providers {
@@ -35,6 +35,7 @@ export function LoginPage() {
   const [providers, setProviders] = useState<Providers>({ github: false, google: false });
 
   useEffect(() => {
+    if (!OAUTH_ENABLED) return;
     fetch(`${API_BASE}/auth/providers`)
       .then((r) => (r.ok ? r.json() : null))
       .then((p) => p && setProviders({ github: !!p.github, google: !!p.google }))
@@ -147,7 +148,7 @@ export function LoginPage() {
           <span className="flex-1 h-px bg-gray-200" />
         </div>
 
-        {(providers.github || providers.google) && (
+        {OAUTH_ENABLED && (providers.github || providers.google) && (
           <div className="space-y-2 mb-3">
             {providers.github && (
               <a
