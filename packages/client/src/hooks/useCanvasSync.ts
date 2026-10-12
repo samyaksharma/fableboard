@@ -22,18 +22,18 @@ async function enlivenFromData(data: unknown[]): Promise<FabricObject[]> {
 }
 
 // `type` (and a few others) are read-only on live fabric objects.
-function settable(data: Record<string, unknown>) {
+export function settable(data: Record<string, unknown>) {
   const { type: _t, version: _v, ...rest } = data;
   return rest;
 }
 
-const EXTRA_PROPS = ['__elementId', '__stickyRole'];
+export const EXTRA_PROPS = ['__elementId', '__stickyRole'];
 
-function objectsFor(canvas: Canvas, elementId: string): FabricObject[] {
+export function objectsFor(canvas: Canvas, elementId: string): FabricObject[] {
   return canvas.getObjects().filter((o) => (o as any).__elementId === elementId);
 }
 
-function stickyData(canvas: Canvas, elementId: string) {
+export function stickyData(canvas: Canvas, elementId: string) {
   const objs = objectsFor(canvas, elementId);
   const bg = objs.find((o) => (o as any).__stickyRole === 'bg');
   const text = objs.find((o) => (o as any).__stickyRole === 'text');
@@ -47,7 +47,7 @@ function syncStickyText(canvas: Canvas, elementId: string) {
   text.setCoords();
 }
 
-async function addElementToCanvas(canvas: Canvas, el: CanvasElement) {
+export async function addElementToCanvas(canvas: Canvas, el: CanvasElement) {
   const parts: [string, any][] =
     el.type === 'sticky_note'
       ? [['bg', el.fabricData.bg], ['text', el.fabricData.text]]
@@ -66,6 +66,29 @@ async function addElementToCanvas(canvas: Canvas, el: CanvasElement) {
     delete (obj as any).__skipEmit;
   }
   canvas.renderAll();
+}
+
+/** The move_element payload for an element's current on-canvas state (a sticky note is bg + text). */
+export function buildMovePayload(
+  canvas: Canvas,
+  sessionId: string,
+  elementId: string,
+): MoveElementPayload | null {
+  const { bg, text } = stickyData(canvas, elementId);
+  const source = bg ?? objectsFor(canvas, elementId)[0];
+  if (!source) return null;
+  return {
+    elementId,
+    sessionId,
+    position: { x: source.left ?? 0, y: source.top ?? 0 },
+    fabricData: bg
+      ? {
+          bg: (bg.toObject as any)(EXTRA_PROPS),
+          text: text ? (text.toObject as any)(EXTRA_PROPS) : undefined,
+        }
+      : (source.toObject as any)(EXTRA_PROPS),
+    updatedAt: nowISO(),
+  };
 }
 
 export function useCanvasSync(
@@ -89,20 +112,8 @@ export function useCanvasSync(
       if (!elementId) return;
       if ((obj as any).__stickyRole === 'text') return; // text edits go through OT
 
-      const { bg, text } = stickyData(canvas, elementId);
-      const source = bg ?? obj;
-      const payload: MoveElementPayload = {
-        elementId,
-        sessionId: session.id,
-        position: { x: source.left ?? 0, y: source.top ?? 0 },
-        fabricData: bg
-          ? {
-              bg: (bg.toObject as any)(EXTRA_PROPS),
-              text: text ? (text.toObject as any)(EXTRA_PROPS) : undefined,
-            }
-          : (obj.toObject as any)(EXTRA_PROPS),
-        updatedAt: nowISO(),
-      };
+      const payload = buildMovePayload(canvas, session.id, elementId);
+      if (!payload) return;
       socket.emit(SocketEvents.MOVE_ELEMENT, payload);
       updateElement(elementId, {
         position: payload.position,

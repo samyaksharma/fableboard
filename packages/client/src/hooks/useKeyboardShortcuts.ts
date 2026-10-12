@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useCanvasStore } from '@/stores/canvasStore';
 import { useUIStore } from '@/stores/uiStore';
 import type { Canvas } from 'fabric';
+import { historyControls } from '@/services/historyControls';
 
 export function useKeyboardShortcuts(fabricRef: React.RefObject<Canvas | null>) {
   const setActiveTool = useCanvasStore((s) => s.setActiveTool);
@@ -18,6 +19,19 @@ export function useKeyboardShortcuts(fabricRef: React.RefObject<Canvas | null>) 
         return;
       }
 
+      if (e.ctrlKey || e.metaKey) {
+        const key = e.key.toLowerCase();
+        if (key === 'z') {
+          e.preventDefault();
+          if (e.shiftKey) historyControls.redo();
+          else historyControls.undo();
+        } else if (key === 'y') {
+          e.preventDefault();
+          historyControls.redo();
+        }
+        return;
+      }
+
       switch (e.key.toLowerCase()) {
         case 'v':
           setActiveTool('select');
@@ -28,6 +42,12 @@ export function useKeyboardShortcuts(fabricRef: React.RefObject<Canvas | null>) 
           break;
         case 'e':
           setActiveTool('eraser');
+          break;
+        case 'l':
+          setActiveTool('line');
+          break;
+        case 'a':
+          setActiveTool('arrow');
           break;
         case 'r':
           setActiveTool('rect');
@@ -50,7 +70,12 @@ export function useKeyboardShortcuts(fabricRef: React.RefObject<Canvas | null>) 
           if (!canvas) break;
           const active = canvas.getActiveObjects();
           if (active.length > 0) {
-            active.forEach((obj) => canvas.remove(obj));
+            // A sticky note is two objects; remove every part of each selected element.
+            const ids = new Set(active.map((o) => (o as any).__elementId).filter(Boolean));
+            const doomed = canvas
+              .getObjects()
+              .filter((o) => active.includes(o) || ids.has((o as any).__elementId));
+            doomed.forEach((obj) => canvas.remove(obj));
             canvas.discardActiveObject();
             canvas.renderAll();
           }

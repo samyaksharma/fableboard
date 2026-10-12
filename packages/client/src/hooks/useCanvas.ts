@@ -21,6 +21,8 @@ export function useCanvas() {
       if (!containerRef.current) return;
       const { width, height } = containerRef.current.getBoundingClientRect();
       canvas.setDimensions({ width, height });
+      // Fabric caches the canvas's page offset; a layout shift above it (toolbar reflow) skews pointers.
+      canvas.calcOffset();
       canvas.renderAll();
     };
 

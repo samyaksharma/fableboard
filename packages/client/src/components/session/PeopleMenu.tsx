@@ -4,13 +4,13 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { PermissionsManager } from './PermissionsManager';
 import { showToast } from '@/components/ui/Toast';
 import { useAuthStore } from '@/stores/authStore';
+import { resetWorkspace } from '@/services/workspace';
 import * as api from '@/services/api';
 
 export function PeopleMenu() {
   const [open, setOpen] = useState(false);
   const session = useSessionStore((s) => s.session);
   const participants = useSessionStore((s) => s.participants);
-  const reset = useSessionStore((s) => s.reset);
   const logout = useAuthStore((s) => s.logout);
   const { canManageUsers, canDeleteSession, role } = usePermissions();
 
@@ -27,7 +27,7 @@ export function PeopleMenu() {
     if (!window.confirm('Delete this session for everyone? This cannot be undone.')) return;
     try {
       await api.deleteSession(session.id);
-      reset();
+      resetWorkspace();
     } catch (err: any) {
       showToast(err.message || 'Failed to delete session', 'error');
     }
@@ -75,7 +75,7 @@ export function PeopleMenu() {
           <div className="p-3 border-t">
             <button
               onClick={() => {
-                reset();
+                resetWorkspace();
                 logout();
               }}
               className="text-xs text-gray-600 hover:underline"

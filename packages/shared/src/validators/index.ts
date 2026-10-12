@@ -23,6 +23,8 @@ export const canvasElementTypeSchema = z.enum([
   'circle',
   'triangle',
   'sticky_note',
+  'line',
+  'arrow',
   'text',
 ]);
 

@@ -260,3 +260,108 @@ test('eraser: dragging over a stroke removes it for everyone and leaves other sh
   await alice.context.close();
   await bob.context.close();
 });
+
+test('undo/redo: add, move and delete are each undoable and sync to the other user', async () => {
+  const alice = await newUser(browser, 'Alice');
+  const id = await createSession(alice.page, 'Undo');
+  const bob = await newUser(browser, 'Bob');
+  await joinSession(bob.page, id);
+  const undo = () => alice.page.keyboard.press('Control+z');
+  const redo = () => alice.page.keyboard.press('Control+Shift+z');
+  const onBoard = (page: any, x: number) => rectEdge(page, x, 300);
+
+  // add -> undo -> redo
+  await alice.page.click('button[title="Rectangle"]');
+  await alice.page.mouse.click(300, 300);
+  await expectEventually(onBoard(bob.page, 300), 'Bob sees the rectangle');
+  await undo();
+  await expectEventually(async () => !(await onBoard(bob.page, 300)()), 'undo removes it for Bob');
+  await redo();
+  await expectEventually(onBoard(bob.page, 300), 'redo brings it back for Bob');
+
+  // move -> undo
+  await alice.page.mouse.move(300, 300);
+  await alice.page.mouse.down();
+  await alice.page.mouse.move(520, 300, { steps: 10 });
+  await alice.page.mouse.up();
+  await expectEventually(onBoard(bob.page, 520), 'Bob sees the moved rectangle');
+  await undo();
+  await expectEventually(onBoard(bob.page, 300), 'undo moves it back for Bob');
+  assert.ok(!(await onBoard(bob.page, 520)()), 'and it is no longer at the new place');
+
+  // delete -> undo
+  await alice.page.mouse.click(300, 300);
+  await alice.page.keyboard.press('Delete');
+  await expectEventually(async () => !(await onBoard(bob.page, 300)()), 'Bob sees it deleted');
+  await undo();
+  await expectEventually(onBoard(bob.page, 300), 'undo restores the deleted rectangle for Bob');
+
+  // the toolbar buttons are wired to the same history
+  await alice.page.click('button[aria-label="Undo"]');
+  await expectEventually(async () => !(await onBoard(bob.page, 300)()), 'toolbar undo works');
+  await alice.page.click('button[aria-label="Redo"]');
+  await expectEventually(onBoard(bob.page, 300), 'toolbar redo works');
+  await alice.context.close();
+  await bob.context.close();
+});
+
+test('line and arrow: drawn by dragging, synced, and erasable', async () => {
+  const alice = await newUser(browser, 'Alice');
+  const id = await createSession(alice.page, 'Lines');
+  const bob = await newUser(browser, 'Bob');
+  await joinSession(bob.page, id);
+  const mid = (page: any) => regionHasInk(page, 392, 342, 16, 16);
+
+  await alice.page.click('button[title="Line"]');
+  await alice.page.mouse.move(300, 300);
+  await alice.page.mouse.down();
+  await alice.page.mouse.move(500, 400, { steps: 12 });
+  await alice.page.mouse.up();
+  await expectEventually(() => mid(bob.page), 'Bob sees the line');
+
+  // An arrow has a head: ink is concentrated near its end, away from a plain line's end.
+  await alice.page.click('button[title="Arrow"]');
+  await alice.page.mouse.move(300, 560);
+  await alice.page.mouse.down();
+  await alice.page.mouse.move(600, 560, { steps: 12 });
+  await alice.page.mouse.up();
+  await expectEventually(() => regionHasInk(bob.page, 585, 548, 8, 8), 'Bob sees the arrow head');
+
+  // Undo removes the arrow only; the eraser removes the line.
+  await alice.page.keyboard.press('Control+z');
+  await expectEventually(async () => !(await regionHasInk(bob.page, 585, 548, 8, 8)), 'arrow undone');
+  assert.ok(await mid(bob.page), 'the line is still there');
+
+  await alice.page.click('button[title="Eraser"]');
+  await alice.page.mouse.move(380, 330);
+  await alice.page.mouse.down();
+  await alice.page.mouse.move(420, 370, { steps: 8 });
+  await alice.page.mouse.up();
+  await expectEventually(async () => !(await mid(bob.page)), 'line erased for Bob');
+  await alice.context.close();
+  await bob.context.close();
+});
+
+test('session menu: leave a board, start another, and switch back from the list', async () => {
+  const alice = await newUser(browser, 'Alice');
+  await createSession(alice.page, 'Board One');
+  await alice.page.click('button[title="Rectangle"]');
+  await alice.page.mouse.click(300, 300);
+  await alice.page.waitForTimeout(500);
+
+  // Leave to the start screen and make a second session
+  await alice.page.click('button:has-text("Fableboard")');
+  await alice.page.click('text=New or join another session');
+  await alice.page.locator('text=Create New Session').waitFor();
+  await createSession(alice.page, 'Board Two');
+  assert.equal(await alice.page.locator('text=Sketch it. Sync it. Ship it.').count(), 1, 'fresh empty board');
+
+  // Both sessions are listed, and the first still has its shape
+  await alice.page.click('button:has-text("Fableboard")');
+  const list = alice.page.locator('div.absolute:has-text("Your sessions")');
+  await expectEventually(async () => (await list.innerText()).includes('Board One'), 'Board One is listed');
+  assert.match(await list.innerText(), /Board Two[\s\S]*current/);
+  await alice.page.click('button:has-text("Board One")');
+  await expectEventually(rectEdge(alice.page, 300, 300), 'Board One comes back with its rectangle');
+  await alice.context.close();
+});

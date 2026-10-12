@@ -4,6 +4,7 @@ import { connectSocket, disconnectSocket } from '@/services/socketClient';
 import { SocketEvents, type Participant, type SessionStatePayload } from '@fableboard/shared';
 import { useSessionStore } from '@/stores/sessionStore';
 import { showToast } from '@/components/ui/Toast';
+import { resetWorkspace } from '@/services/workspace';
 
 export function useSocket(): Socket | null {
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -44,7 +45,7 @@ export function useSocket(): Socket | null {
     };
     const onDeleted = () => {
       showToast('The owner deleted this session', 'error');
-      useSessionStore.getState().reset();
+      resetWorkspace();
     };
     const onError = (p: { message: string }) => showToast(p.message, 'error');
     const onState = (p: SessionStatePayload) => setParticipants(p.participants);

@@ -9,7 +9,9 @@ sticky note, drag it into a column: the handoff from whiteboard to task list is 
 
 | | |
 |---|---|
-| **Shared canvas** | Freehand drawing, rectangles, circles, triangles, sticky notes. Everything is synced live. |
+| **Shared canvas** | Freehand drawing, lines, arrows, rectangles, circles, triangles, sticky notes, and an eraser. Everything is synced live. |
+| **Undo / redo** | Per-user history (Ctrl+Z, Ctrl+Shift+Z) for adding, moving and deleting; changes replay as normal edits so everyone stays in sync. |
+| **Sessions menu** | Switch between your boards or go back to the start screen from the Fableboard menu. |
 | **Realtime collaboration** | Presence, live cursors, late-join and reconnect replay of the full board. |
 | **Drag-to-kanban** | Drag any element into To Do / In Progress / Done. It becomes a card (sticky text becomes the title) and leaves the canvas for everyone. |
 | **Conflict resolution** | Sticky text: operational transform. Element positions: last-write-wins. Kanban cards: LWW with the server authoritative. |
@@ -94,7 +96,7 @@ pnpm demo        # records a local walkthrough video into docs/ (git-ignored)
 | Unit (`packages/shared`) | OT apply/transform/convergence (500 randomized cases), OT client/server sessions, LWW, schemas |
 | Unit (`packages/client`) | Kanban card state transitions |
 | Integration (`packages/server`) | Multi-client sync, late-join replay, drag-to-kanban broadcast, LWW and card conflicts, OT through real sockets, viewer rejection; auth: hashing, register/login, duplicate and generic errors, lockout, rate limit |
-| E2E (`e2e/`) | Draw + sync between two browsers, concurrent sticky editing, drag-to-kanban, live role change, board snapshots, account sign-up/sign-in/sign-out, JSON and 2-page PDF export |
+| E2E (`e2e/`) | Draw + sync between two browsers, concurrent sticky editing, drag-to-kanban, live role change, board snapshots, accounts, eraser, undo/redo, lines and arrows, switching sessions, JSON and 2-page PDF export |
 
 First-time E2E setup: `pnpm exec playwright install chromium`. On a minimal Linux/WSL image
 you may also need Chromium's system libraries (`libnspr4`, `libnss3`, `libasound2`).

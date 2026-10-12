@@ -2,6 +2,7 @@ import { useEffect, useCallback, useRef } from 'react';
 import type { Canvas } from 'fabric';
 import type { KanbanColumn } from '@fableboard/shared';
 import { useCanvasStore } from '@/stores/canvasStore';
+import { historyControls } from '@/services/historyControls';
 import { useUIStore } from '@/stores/uiStore';
 
 interface UseDragToKanbanProps {
@@ -80,10 +81,12 @@ export function useDragToKanban({
 
       // Remove from canvas. Not __skipEmit: the removal is broadcast so every client's canvas matches.
       canvas.discardActiveObject();
-      canvas
-        .getObjects()
-        .filter((obj) => (obj as any).__elementId === elementId)
-        .forEach((obj) => canvas.remove(obj));
+      historyControls.suspend(() =>
+        canvas
+          .getObjects()
+          .filter((obj) => (obj as any).__elementId === elementId)
+          .forEach((obj) => canvas.remove(obj)),
+      );
       canvas.renderAll();
       removeElement(elementId);
 

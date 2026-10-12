@@ -77,3 +77,14 @@ export async function deleteSession(sessionId: string) {
     throw new Error(err.error || res.statusText);
   }
 }
+
+export interface SessionSummary {
+  id: string;
+  title: string;
+  role: string;
+  createdAt: string;
+}
+
+export function listSessions() {
+  return request<{ sessions: SessionSummary[] }>('/sessions');
+}

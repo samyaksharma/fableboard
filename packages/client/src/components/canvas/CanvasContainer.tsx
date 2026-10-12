@@ -9,6 +9,8 @@ import { useStickyText } from '@/hooks/useStickyText';
 import { useCursorSync } from '@/hooks/useCursorSync';
 import { useDragToKanban } from '@/hooks/useDragToKanban';
 import { useEraser } from '@/hooks/useEraser';
+import { useLines } from '@/hooks/useLines';
+import { useHistory } from '@/hooks/useHistory';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import type { KanbanColumn } from '@fableboard/shared';
 import { RemoteCursors } from './RemoteCursors';
@@ -56,6 +58,8 @@ export function CanvasContainer({ socket, kanbanRef, onDropToKanban }: Props) {
 
   useDrawing(fabricRef, socket);
   useEraser(fabricRef, canDraw);
+  useLines(fabricRef, socket, canDraw);
+  useHistory(fabricRef, socket, canDraw);
   useCanvasSync(fabricRef, socket);
   useStickyText(fabricRef, socket);
   const { createShape } = useShapes(fabricRef, socket);
@@ -98,6 +102,7 @@ export function CanvasContainer({ socket, kanbanRef, onDropToKanban }: Props) {
     <div
       ref={containerRef}
       className="flex-1 relative overflow-hidden"
+      onPointerDownCapture={() => fabricRef.current?.calcOffset()}
       onClick={handleCanvasClick}
     >
       <canvas ref={canvasRef} />

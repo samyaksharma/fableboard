@@ -110,6 +110,12 @@ export function useStickyText(fabricRef: React.RefObject<Canvas | null>, socket:
       setRemoteText(p.elementId, text);
     };
 
+    const onRemoteDelete = (p: { elementId: string }) => clients.delete(p.elementId);
+    const onObjectRemoved = (e: { target?: FabricObject }) => {
+      const obj = e.target as any;
+      if (obj?.__stickyRole === 'text' && obj.__elementId) clients.delete(obj.__elementId);
+    };
+
     const onAck = (p: TextAckPayload) => send(p.elementId, getClient(p.elementId).ack(p.version));
 
     const onResync = (p: TextResyncPayload) => {
@@ -124,6 +130,8 @@ export function useStickyText(fabricRef: React.RefObject<Canvas | null>, socket:
     socket.on(SocketEvents.TEXT_OP, onRemoteOp);
     socket.on(SocketEvents.TEXT_ACK, onAck);
     socket.on(SocketEvents.TEXT_RESYNC, onResync);
+    socket.on(SocketEvents.DELETE_ELEMENT, onRemoteDelete);
+    canvas.on('object:removed', onObjectRemoved as any);
     return () => {
       canvas.off('text:changed', onTextChanged as any);
       canvas.off('mouse:dblclick', onDblClick as any);
@@ -131,6 +139,8 @@ export function useStickyText(fabricRef: React.RefObject<Canvas | null>, socket:
       socket.off(SocketEvents.TEXT_OP, onRemoteOp);
       socket.off(SocketEvents.TEXT_ACK, onAck);
       socket.off(SocketEvents.TEXT_RESYNC, onResync);
+      socket.off(SocketEvents.DELETE_ELEMENT, onRemoteDelete);
+      canvas.off('object:removed', onObjectRemoved as any);
     };
   }, [fabricRef, socket, session]);
 }

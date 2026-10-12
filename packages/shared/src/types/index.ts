@@ -48,6 +48,8 @@ export type CanvasElementType =
   | 'circle'
   | 'triangle'
   | 'sticky_note'
+  | 'line'
+  | 'arrow'
   | 'text';
 
 export interface CanvasElement {
