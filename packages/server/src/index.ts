@@ -4,6 +4,7 @@ import { createServer } from 'http';
 import { config } from './config/env.js';
 import { convexEnabled } from './config/convex.js';
 import { flushPersist } from './store/persist.js';
+import { checkConvex } from './services/convexHealth.js';
 import { createSocketServer } from './socket/index.js';
 import healthRouter from './routes/health.js';
 import authRouter from './routes/auth.js';
@@ -28,6 +29,7 @@ async function start() {
 
   httpServer.listen(config.port, () => {
     console.log(`Fableboard server running on port ${config.port}`);
+    if (convexEnabled) checkConvex().then((s) => console.log(`Convex check: ${s}`));
   });
 }
 

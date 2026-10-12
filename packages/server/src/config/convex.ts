@@ -2,8 +2,19 @@ import { ConvexHttpClient } from 'convex/browser';
 import { makeFunctionReference } from 'convex/server';
 import { config } from './env.js';
 
-const client =
-  config.convexUrl && config.convexServerSecret ? new ConvexHttpClient(config.convexUrl) : null;
+let client: ConvexHttpClient | null = null;
+/** Set when CONVEX_URL is rejected by the Convex client (e.g. the .convex.site URL). */
+export let convexConfigError: string | null = null;
+
+if (config.convexUrl && config.convexServerSecret) {
+  try {
+    client = new ConvexHttpClient(config.convexUrl);
+  } catch (err) {
+    // A bad URL must not crash the server on boot: run in memory and say why.
+    convexConfigError = err instanceof Error ? err.message.split('\n')[0] : String(err);
+    console.error(`Convex disabled, invalid CONVEX_URL: ${convexConfigError}`);
+  }
+}
 
 export const convexEnabled = client !== null;
 
