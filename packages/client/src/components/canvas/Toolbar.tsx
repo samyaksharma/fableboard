@@ -75,14 +75,18 @@ export function Toolbar() {
 
   return (
     <div className="bg-white border-b border-gray-200 shadow-sm">
-      <div className="flex flex-wrap md:flex-nowrap items-center gap-x-2 gap-y-1 px-3 md:px-4 py-2">
-        <SessionMenu />
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1 px-3 md:px-4 py-2">
+        <div className="min-w-0 col-start-1 row-start-1">
+          <SessionMenu />
+        </div>
 
         {!canDraw && (
-          <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-500">View only</span>
+          <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-500 col-span-2 row-start-2 justify-self-start md:col-span-1 md:col-start-2 md:row-start-1">
+            View only
+          </span>
         )}
         {canDraw && (
-          <div className="order-last basis-full md:order-none md:basis-auto flex items-center gap-0 md:gap-1 overflow-x-auto md:min-w-0">
+          <div className="col-span-2 row-start-2 md:col-span-1 md:col-start-2 md:row-start-1 flex items-center gap-0 md:gap-1 overflow-x-auto min-w-0">
             <div className="flex items-center gap-0 md:gap-1 border-r border-gray-200 pr-1 md:pr-3 mr-1 md:mr-0 shrink-0">
               {tools.map((tool) => (
                 <button
@@ -120,20 +124,20 @@ export function Toolbar() {
           </div>
         )}
 
-        <div className="flex-1" />
-
-        <PeopleMenu />
-        <ExportMenu />
-        <button
-          onClick={toggleKanban}
-          className={`px-2 sm:px-3 py-1.5 rounded text-xs sm:text-sm font-medium transition-colors ${
-            kanbanOpen
-              ? 'bg-blue-100 text-blue-700'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          }`}
-        >
-          Kanban
-        </button>
+        <div className="col-start-2 row-start-1 md:col-start-3 flex items-center gap-1.5 md:gap-2 shrink-0">
+          <PeopleMenu />
+          <ExportMenu />
+          <button
+            onClick={toggleKanban}
+            className={`px-2 sm:px-3 py-1.5 rounded text-xs sm:text-sm font-medium transition-colors ${
+              kanbanOpen
+                ? 'bg-blue-100 text-blue-700'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Kanban
+          </button>
+        </div>
       </div>
 
       {canDraw && (

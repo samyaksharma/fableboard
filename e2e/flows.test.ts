@@ -463,3 +463,32 @@ test('mobile: usable at phone width with touch drawing, no sideways scroll', asy
   );
   await mia.context.close();
 });
+
+test('mobile header: menu, People, Export and Kanban stay on the first row at common phone widths', async () => {
+  for (const width of [320, 360, 375, 390, 412]) {
+    const m = await newUser(browser, 'Mia', {
+      viewport: { width, height: 740 },
+      isMobile: true,
+      hasTouch: true,
+      deviceScaleFactor: 1,
+    });
+    await createSession(m.page, 'A board with a rather long title');
+    const box = async (label: string) => {
+      const b = await m.page.locator(`button:has-text("${label}")`).first().boundingBox();
+      assert.ok(b, `${label} is rendered at ${width}px`);
+      return b!;
+    };
+    const rows = new Set<number>();
+    for (const label of ['Fableboard', 'People', 'Export', 'Kanban']) {
+      const b = await box(label);
+      assert.ok(b.x >= 0 && b.x + b.width <= width, `${label} is on screen at ${width}px`);
+      rows.add(Math.round(b.y / 10));
+    }
+    assert.equal(rows.size, 1, `menu and actions share one row at ${width}px`);
+    assert.ok(
+      (await m.page.evaluate('document.documentElement.scrollWidth - window.innerWidth')) as number <= 1,
+      `no sideways scroll at ${width}px`,
+    );
+    await m.context.close();
+  }
+});

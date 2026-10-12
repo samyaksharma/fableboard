@@ -47,7 +47,7 @@ export function PeopleMenu() {
         onClick={() => setOpen(!open)}
         className="px-2 sm:px-3 py-1.5 rounded text-xs sm:text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
       >
-        People ({participants.length})
+        People<span className="hidden sm:inline"> ({participants.length})</span>
       </button>
       {open && (
         <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border z-50 w-72 max-w-[calc(100vw-1.5rem)]">

@@ -45,7 +45,7 @@ export function SessionMenu() {
     <div className="relative mr-2">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 font-bold text-lg text-slate-800 hover:text-blue-600"
+        className="flex items-center gap-1 font-bold text-base sm:text-lg text-slate-800 hover:text-blue-600 max-w-full"
         aria-haspopup="menu"
         aria-expanded={open}
       >
