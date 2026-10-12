@@ -11,3 +11,25 @@ export function normalizeOrigin(raw: string | undefined, fallback = ''): string 
   }
   return url;
 }
+
+/** Pasted values often carry surrounding whitespace or quotes ("abc", 'abc'). */
+export function cleanEnvValue(raw: string | undefined): string {
+  return (raw ?? '').trim().replace(/^(["'])(.*)\1$/, '$2').trim();
+}
+
+/**
+ * Normalise CONVEX_URL to the bare deployment origin. A trailing slash, whitespace, quotes or an
+ * "/api" suffix all make requests fail at the network level, and http:// is not served by Convex.
+ */
+export function normalizeConvexUrl(raw: string | undefined): string {
+  const value = cleanEnvValue(raw);
+  if (!value) return '';
+  const withScheme = /^https?:\/\//i.test(value) ? value : `https://${value}`;
+  try {
+    const url = new URL(withScheme);
+    if (url.hostname.endsWith('.convex.cloud')) url.protocol = 'https:';
+    return url.origin;
+  } catch {
+    return withScheme;
+  }
+}

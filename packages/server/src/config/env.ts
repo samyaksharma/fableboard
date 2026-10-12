@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { normalizeOrigin } from './url.js';
+import { cleanEnvValue, normalizeConvexUrl, normalizeOrigin } from './url.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, '../../../../');
@@ -15,8 +15,8 @@ export const config = {
   clientUrl: normalizeOrigin(process.env.CLIENT_URL, 'http://localhost:5173'),
   serverUrl: normalizeOrigin(process.env.SERVER_URL, 'http://localhost:3001'),
 
-  convexUrl: process.env.CONVEX_URL || '',
-  convexServerSecret: process.env.CONVEX_SERVER_SECRET || '',
+  convexUrl: normalizeConvexUrl(process.env.CONVEX_URL),
+  convexServerSecret: cleanEnvValue(process.env.CONVEX_SERVER_SECRET),
 
   githubClientId: process.env.GITHUB_CLIENT_ID || '',
   githubClientSecret: process.env.GITHUB_CLIENT_SECRET || '',

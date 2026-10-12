@@ -16,7 +16,7 @@ const HINTS: Record<Exclude<ConvexStatus, 'disabled' | 'ok'>, string> = {
   'missing-functions':
     'CONVEX_URL points at a deployment without the Fableboard functions (run `npx convex deploy`, or use the URL of the deployment you ran `convex dev` against).',
   unreachable:
-    'Could not reach Convex. CONVEX_URL should be the https://<name>.convex.cloud URL (not .convex.site).',
+    'Could not reach Convex. Check CONVEX_URL for a typo in the deployment name (compare convexHost on /api/health with your deployment).',
 };
 
 let cached: { at: number; status: ConvexStatus } | null = null;
