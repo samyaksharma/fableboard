@@ -44,6 +44,28 @@ export const loadSession = query({
   },
 });
 
+export const listSessionsForUser = query({
+  args: { secret: v.string(), userId: v.string() },
+  handler: async (ctx, { secret, userId }) => {
+    check(secret);
+    const memberships = await ctx.db
+      .query("participants")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .take(200);
+    const rows = [];
+    for (const m of memberships) {
+      const session = await ctx.db
+        .query("sessions")
+        .withIndex("by_session", (q) => q.eq("sessionId", m.sessionId))
+        .unique();
+      if (session) {
+        rows.push({ id: session.sessionId, title: session.title, role: m.role, createdAt: session.createdAt });
+      }
+    }
+    return rows;
+  },
+});
+
 export const upsertSession = mutation({
   args: {
     secret: v.string(),

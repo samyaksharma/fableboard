@@ -189,3 +189,18 @@ test('viewers cannot edit sticky-note text', async () => {
   });
   assert.match((await err).message, /Permission denied/);
 });
+
+test('sessions list: a user sees every session they belong to, with their role', async () => {
+  const [owner, guest] = await Promise.all([makeUser('Lister'), makeUser('Guest')]);
+  const first = sessionService.createSession('First', 'Lister', owner.id).session;
+  const second = sessionService.createSession('Second', 'Other', guest.id).session;
+  sessionService.addParticipant(second.id, 'Lister', owner.id);
+
+  const rows = sessionService.listForUser(owner.id);
+  assert.deepEqual(
+    rows.map((r) => [r.id, r.role]).sort(),
+    [[first.id, 'owner'], [second.id, 'editor']].sort(),
+  );
+  assert.equal(sessionService.listForUser(guest.id).length, 1);
+  assert.equal(sessionService.listForUser('nobody').length, 0);
+});

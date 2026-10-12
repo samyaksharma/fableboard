@@ -35,7 +35,8 @@ export default defineSchema({
     userId: v.optional(v.string()),
   })
     .index("by_session", ["sessionId"])
-    .index("by_participant", ["sessionId", "participantId"]),
+    .index("by_participant", ["sessionId", "participantId"])
+    .index("by_user", ["userId"]),
 
   elements: defineTable({
     sessionId: v.string(),

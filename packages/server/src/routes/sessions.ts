@@ -2,6 +2,7 @@ import { Router, type Router as ExpressRouter } from 'express';
 import { createSessionSchema } from '@fableboard/shared';
 import { z } from 'zod';
 import * as sessionService from '../services/sessionService.js';
+import { convexEnabled, convexQuery } from '../config/convex.js';
 import * as canvasStore from '../store/canvasStore.js';
 import { SocketEvents } from '@fableboard/shared';
 import * as kanbanStore from '../store/kanbanStore.js';
@@ -12,6 +13,24 @@ const router: ExpressRouter = Router();
 router.param('id', async (_req, _res, next, id) => {
   await sessionService.ensureLoaded(id);
   next();
+});
+
+router.get('/sessions', async (req, res) => {
+  const byId = new Map(sessionService.listForUser(req.user!.userId).map((s) => [s.id, s]));
+  if (convexEnabled) {
+    try {
+      const rows = await convexQuery<Array<{ id: string; title: string; role: string; createdAt: string }>>(
+        'listSessionsForUser',
+        { userId: req.user!.userId },
+      );
+      // After a restart only Convex knows older sessions; memory wins for sessions it has.
+      for (const row of rows) if (!byId.has(row.id)) byId.set(row.id, row as any);
+    } catch (err) {
+      console.error('Convex listSessionsForUser failed:', err instanceof Error ? err.message : err);
+    }
+  }
+  const sessions = [...byId.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  res.json({ sessions });
 });
 
 router.post('/sessions', (req, res) => {

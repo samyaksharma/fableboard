@@ -80,6 +80,18 @@ export function addParticipant(sessionId: string, name: string, userId?: string)
   return participant;
 }
 
+export function listForUser(userId: string) {
+  const rows: Array<{ id: string; title: string; role: Role; createdAt: string }> = [];
+  for (const [sessionId, members] of participants) {
+    const me = members.find((p) => p.userId === userId);
+    const session = sessions.get(sessionId);
+    if (me && session) {
+      rows.push({ id: sessionId, title: session.title, role: me.role, createdAt: session.createdAt });
+    }
+  }
+  return rows;
+}
+
 export function getParticipantByUserId(sessionId: string, userId: string): Participant | null {
   const existing = participants.get(sessionId) ?? [];
   return existing.find((p) => p.userId === userId) ?? null;
