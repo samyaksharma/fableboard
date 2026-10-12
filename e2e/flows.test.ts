@@ -232,3 +232,31 @@ test('accounts: register, sign out, sign in again and still own the board', asyn
   await context.close();
   await other.close();
 });
+
+test('eraser: dragging over a stroke removes it for everyone and leaves other shapes', async () => {
+  const alice = await newUser(browser, 'Alice');
+  const id = await createSession(alice.page, 'Erase');
+  const bob = await newUser(browser, 'Bob');
+  await joinSession(bob.page, id);
+
+  await alice.page.click('button[title="Rectangle"]');
+  await alice.page.mouse.click(300, 300);
+  await alice.page.click('button[title="Draw"]');
+  await alice.page.mouse.move(450, 500);
+  await alice.page.mouse.down();
+  await alice.page.mouse.move(750, 500, { steps: 12 });
+  await alice.page.mouse.up();
+  await expectEventually(strokeAt(bob.page, 600, 500), 'Bob sees the stroke');
+
+  await alice.page.click('button[title="Eraser"]');
+  await alice.page.mouse.move(500, 480);
+  await alice.page.mouse.down();
+  await alice.page.mouse.move(700, 505, { steps: 15 });
+  await alice.page.mouse.up();
+
+  await expectEventually(async () => !(await strokeAt(bob.page, 600, 500)()), 'stroke erased for Bob');
+  assert.ok(!(await strokeAt(alice.page, 600, 500)()), 'stroke erased for Alice');
+  assert.ok(await rectEdge(bob.page, 300, 300)(), 'the rectangle is untouched');
+  await alice.context.close();
+  await bob.context.close();
+});

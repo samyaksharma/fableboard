@@ -26,6 +26,9 @@ export function useKeyboardShortcuts(fabricRef: React.RefObject<Canvas | null>) 
         case 'd':
           setActiveTool('draw');
           break;
+        case 'e':
+          setActiveTool('eraser');
+          break;
         case 'r':
           setActiveTool('rect');
           break;

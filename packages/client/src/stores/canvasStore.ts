@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { CanvasElement, CanvasElementType } from '@fableboard/shared';
 
-export type ToolType = 'select' | 'draw' | 'rect' | 'circle' | 'triangle' | 'sticky_note';
+export type ToolType = 'select' | 'draw' | 'eraser' | 'rect' | 'circle' | 'triangle' | 'sticky_note';
 
 interface CanvasState {
   elements: Record<string, CanvasElement>;
